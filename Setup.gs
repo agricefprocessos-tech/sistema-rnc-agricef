@@ -14,28 +14,34 @@
  * PASSO 1 — Define as credenciais Jira no PropertiesService.
  *
  * COMO USAR:
- *   1. Preencha os 3 valores abaixo com suas credenciais reais
+ *   1. Substitua os valores "COLE_AQUI_..." pelas suas credenciais
  *   2. Clique em Executar (▶) com esta função selecionada
- *   3. Apague os valores após executar (ou deixe como estão — o GAS
- *      não expõe o código-fonte via Web App)
+ *   3. IMEDIATAMENTE após executar: apague os valores e salve
+ *      (ou use a UI do PropertiesService em Projeto > Configurações)
+ *
+ * ⚠ NUNCA commite este arquivo com credenciais reais!
  */
 function configurarPropriedades() {
   const props = PropertiesService.getScriptProperties();
 
+  // ── PREENCHA ABAIXO (apague após executar!) ──────────────
   const JIRA_URL   = "https://agricef-qualidade.atlassian.net/rest/api/3";
   const JIRA_EMAIL = "agricef.qualidade@agricef.com.br";
   const JIRA_TOKEN = "COLE_AQUI_O_NOVO_TOKEN_JIRA";
+  // ─────────────────────────────────────────────────────────
 
-  props.setProperties({
-    JIRA_URL,
-    JIRA_EMAIL,
-    JIRA_TOKEN,
-  });
+  if (JIRA_TOKEN === "COLE_AQUI_O_NOVO_TOKEN_JIRA") {
+    throw new Error("⛔ Configure o JIRA_TOKEN antes de executar!");
+  }
+
+  props.setProperties({ JIRA_URL, JIRA_EMAIL, JIRA_TOKEN });
 
   Logger.log("✅ Propriedades Jira configuradas com sucesso.");
   Logger.log("   JIRA_URL   : " + JIRA_URL);
   Logger.log("   JIRA_EMAIL : " + JIRA_EMAIL);
   Logger.log("   JIRA_TOKEN : (definido — " + JIRA_TOKEN.length + " caracteres)");
+  Logger.log("");
+  Logger.log("⚠ IMPORTANTE: Apague o valor do JIRA_TOKEN neste arquivo agora!");
 }
 
 
