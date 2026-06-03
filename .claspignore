@@ -1,0 +1,8 @@
+docs/**
+node_modules/**
+*.mjs
+*.md
+*.json
+!appsscript.json
+jira_mapeamento_ids.json
+setup_jira.py
