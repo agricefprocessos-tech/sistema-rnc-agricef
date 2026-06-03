@@ -26,16 +26,16 @@ const CONFIG = {
                                                                  // em Web Apps standalone — não há planilha ativa.
   JIRA_PROJECT:    "SGQ",                    // Chave do projeto no Jira (atualizado para SGQ em 03/06/2026)
   JIRA_ISSUE_TYPE: "10074",                  // ID do Issue Type padrão do projeto SGQ (Business project)
-  // Mapa de Custom Fields — IDs gerados pelo setup_jira.mjs em 03/06/2026
+  // Mapa de Custom Fields — IDs recriados para projeto SGQ em 03/06/2026
   CF: {
-    ORIGEM:       "customfield_10053",  // Origem do Item
-    QTD_LOTE:     "customfield_10055",  // Quantidade do Lote
-    QTD_DESVIO:   "customfield_10056",  // Quantidade com Desvio
-    COD_ITEM:     "customfield_10057",  // Código da Peça
-    SETOR:        "customfield_10054",  // Setor Responsável
-    LINK_PDF:     "customfield_10058",  // Link do Dossiê PDF
-    CAUSA_RAIZ:   "customfield_10059",  // Causa Raiz
-    DISPOSICAO:   "customfield_10060",  // Disposição da Peça
+    ORIGEM:       "customfield_10127",  // Origem do Item SGQ
+    QTD_LOTE:     "customfield_10129",  // Qtd Lote SGQ
+    QTD_DESVIO:   "customfield_10130",  // Qtd Desvio SGQ
+    COD_ITEM:     "customfield_10131",  // Codigo Peca SGQ
+    SETOR:        "customfield_10128",  // Setor Responsavel SGQ
+    LINK_PDF:     "customfield_10132",  // Link PDF SGQ
+    CAUSA_RAIZ:   "customfield_10133",  // Causa Raiz SGQ
+    DISPOSICAO:   "customfield_10134",  // Disposicao Peca SGQ
   },
   // Lista de REs autorizados. Em produção, mover para uma aba "Config" de uma planilha
   // para permitir adição/remoção sem alterar código.
