@@ -39,7 +39,16 @@ const CONFIG = {
   },
   // Lista de REs autorizados. Em produção, mover para uma aba "Config" de uma planilha
   // para permitir adição/remoção sem alterar código.
+  // ⚠ Substitua pelos REs reais dos operadores Agricef
   RES_AUTORIZADOS: ["1001", "1002", "1003", "1004", "1005"],
+
+  // E-mails para notificação quando uma nova RNC é aberta
+  // Adicione os e-mails dos responsáveis pelo setor de qualidade
+  EMAILS_NOTIFICACAO: [
+    "agricef.qualidade@agricef.com.br",
+    // "gestor.qualidade@agricef.com.br",
+    // "supervisor.producao@agricef.com.br",
+  ],
   MAX_IMG_BASE64_BYTES: 2 * 1024 * 1024, // 2 MB hard cap pós-compressão
 };
 
@@ -176,6 +185,11 @@ function processarRNC(dados, base64Imagem) {
 
     // 7. Atualiza o campo Link do Dossiê PDF no ticket Jira
     _atualizarLinkPdfJira(ticketKey, urlPdf);
+
+    // 8. Envia notificação por e-mail aos responsáveis (assíncrono — não bloqueia)
+    try { _notificarResponsaveis(dados, ticketKey, urlPdf); } catch(eNotif) {
+      Logger.log("⚠ Notificação e-mail falhou (não crítico): " + eNotif.message);
+    }
 
     return { sucesso: true, ticket: ticketKey, urlPdf };
 
@@ -560,4 +574,78 @@ function _registrarFalhaContingencia(dados, mensagemErro) {
   } catch (e) {
     Logger.log("FALHA ao gravar na planilha de contingência: " + e.toString());
   }
+}
+
+
+// ── Notificações por e-mail ───────────────────────────────────────────────────
+
+/**
+ * Envia e-mail de notificação para os responsáveis quando uma RNC é aberta.
+ * Usa o GmailApp nativo do GAS — não requer configuração adicional.
+ */
+function _notificarResponsaveis(dados, ticketKey, urlPdf) {
+  const destinatarios = CONFIG.EMAILS_NOTIFICACAO;
+  if (!destinatarios || !destinatarios.length) return;
+
+  const jiraUrl = `https://agricef-qualidade.atlassian.net/browse/${ticketKey}`;
+  const dataHora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm");
+
+  const assunto = `[RNC Aberta] ${ticketKey} · ${dados.codigoItem} · ${dados.setorResponsavel}`;
+
+  const htmlBody = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+  <div style="background:#1a56a0;padding:16px 20px;border-radius:6px 6px 0 0">
+    <h2 style="color:#fff;margin:0;font-size:18px">🔴 Nova Não Conformidade Registrada</h2>
+    <p style="color:rgba(255,255,255,.8);margin:4px 0 0;font-size:13px">${dataHora}</p>
+  </div>
+  <div style="background:#fff;border:1px solid #e0e0e0;border-top:none;padding:20px;border-radius:0 0 6px 6px">
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+      <tr style="background:#f5f7fa"><td style="padding:8px 12px;font-weight:bold;width:40%">Ticket Jira</td>
+        <td style="padding:8px 12px"><a href="${jiraUrl}" style="color:#1a56a0;font-weight:bold">${ticketKey}</a></td></tr>
+      <tr><td style="padding:8px 12px;font-weight:bold">Código do Item / OP</td>
+        <td style="padding:8px 12px">${dados.codigoItem}</td></tr>
+      <tr style="background:#f5f7fa"><td style="padding:8px 12px;font-weight:bold">Setor Responsável</td>
+        <td style="padding:8px 12px">${dados.setorResponsavel}</td></tr>
+      <tr><td style="padding:8px 12px;font-weight:bold">Origem do Item</td>
+        <td style="padding:8px 12px">${dados.origemItem}</td></tr>
+      <tr style="background:#f5f7fa"><td style="padding:8px 12px;font-weight:bold">Qtd Lote / Desvio</td>
+        <td style="padding:8px 12px">${dados.qtdLote} pçs no lote · ${dados.qtdDesvio} com desvio</td></tr>
+      <tr><td style="padding:8px 12px;font-weight:bold">Operador (RE)</td>
+        <td style="padding:8px 12px">${dados.reOperador}</td></tr>
+      <tr style="background:#f5f7fa"><td style="padding:8px 12px;font-weight:bold;vertical-align:top">Descrição</td>
+        <td style="padding:8px 12px">${dados.descricaoDefeito}</td></tr>
+    </table>
+    <div style="margin-top:16px;display:flex;gap:12px">
+      <a href="${jiraUrl}" style="background:#1a56a0;color:#fff;padding:10px 18px;border-radius:5px;text-decoration:none;font-weight:bold;font-size:13px">
+        🔗 Ver no Jira
+      </a>
+      ${urlPdf ? `<a href="${urlPdf}" style="background:#1a7a45;color:#fff;padding:10px 18px;border-radius:5px;text-decoration:none;font-weight:bold;font-size:13px">
+        📄 Abrir PDF
+      </a>` : ''}
+    </div>
+    <p style="margin-top:16px;font-size:12px;color:#888">
+      Sistema de Qualidade Agricef · Mensagem automática · Não responda este e-mail
+    </p>
+  </div>
+</div>`;
+
+  const textBody = `Nova RNC registrada em ${dataHora}\n\n`
+    + `Ticket: ${ticketKey}\n`
+    + `Código do Item: ${dados.codigoItem}\n`
+    + `Setor: ${dados.setorResponsavel}\n`
+    + `Origem: ${dados.origemItem}\n`
+    + `Qtd Lote / Desvio: ${dados.qtdLote} / ${dados.qtdDesvio}\n`
+    + `Operador RE: ${dados.reOperador}\n`
+    + `Descrição: ${dados.descricaoDefeito}\n\n`
+    + `Jira: ${jiraUrl}\n`
+    + (urlPdf ? `PDF: ${urlPdf}\n` : '');
+
+  GmailApp.sendEmail(
+    destinatarios.join(','),
+    assunto,
+    textBody,
+    { htmlBody, name: 'Sistema RNC Agricef' }
+  );
+
+  Logger.log(`📧 Notificação enviada para: ${destinatarios.join(', ')}`);
 }
