@@ -1,0 +1,47 @@
+{
+  "issue_type_id": "10040",
+  "project_key": "RNC",
+  "project_id": "10033",
+  "campos": {
+    "ORIGEM": {
+      "id": "customfield_10053",
+      "nome": "Origem do Item",
+      "tipo": "com.atlassian.jira.plugin.system.customfieldtypes:select"
+    },
+    "SETOR": {
+      "id": "customfield_10054",
+      "nome": "Setor Responsável",
+      "tipo": "com.atlassian.jira.plugin.system.customfieldtypes:select"
+    },
+    "QTD_LOTE": {
+      "id": "customfield_10055",
+      "nome": "Quantidade do Lote",
+      "tipo": "com.atlassian.jira.plugin.system.customfieldtypes:float"
+    },
+    "QTD_DESVIO": {
+      "id": "customfield_10056",
+      "nome": "Quantidade com Desvio",
+      "tipo": "com.atlassian.jira.plugin.system.customfieldtypes:float"
+    },
+    "COD_ITEM": {
+      "id": "customfield_10057",
+      "nome": "Código da Peça",
+      "tipo": "com.atlassian.jira.plugin.system.customfieldtypes:textfield"
+    },
+    "LINK_PDF": {
+      "id": "customfield_10058",
+      "nome": "Link do Dossiê PDF",
+      "tipo": "com.atlassian.jira.plugin.system.customfieldtypes:url"
+    },
+    "CAUSA_RAIZ": {
+      "id": "customfield_10059",
+      "nome": "Causa Raiz",
+      "tipo": "com.atlassian.jira.plugin.system.customfieldtypes:select"
+    },
+    "DISPOSICAO": {
+      "id": "customfield_10060",
+      "nome": "Disposição da Peça",
+      "tipo": "com.atlassian.jira.plugin.system.customfieldtypes:select"
+    }
+  }
+}

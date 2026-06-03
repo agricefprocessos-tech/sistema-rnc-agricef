@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Agricef · Abertura de RNC</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --azul:    #1a56a0;
+      --azul-bg: #e8f0fb;
+      --verde:   #1a7a45;
+      --verde-bg:#e6f4ec;
+      --erro:    #c0392b;
+      --erro-bg: #fdecea;
+      --borda:   #d0d5dd;
+      --texto:   #1a1a1a;
+      --muted:   #555;
+      --bg:      #f5f7fa;
+      --card:    #ffffff;
+      --radius:  10px;
+      /* Mínimo 48px em todos os inputs — acessível com luvas EPI */
+      --touch:   52px;
+    }
+
+    body {
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--texto);
+      padding: 12px;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      padding: 20px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ── Cabeçalho ── */
+    .header { text-align: center; margin-bottom: 22px; border-bottom: 1px solid var(--borda); padding-bottom: 16px; }
+    .header h1 { font-size: 18px; font-weight: 600; color: var(--azul); }
+    .header p  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Campos ── */
+    .campo { margin-bottom: 16px; }
+    label  { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); letter-spacing: .02em; }
+    label .obrig { color: var(--erro); margin-left: 2px; }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      min-height: var(--touch);
+      padding: 10px 14px;
+      border: 1.5px solid var(--borda);
+      border-radius: 8px;
+      font-size: 16px;
+      color: var(--texto);
+      background: #fff;
+      transition: border-color .15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--azul);
+      box-shadow: 0 0 0 3px rgba(26,86,160,.12);
+    }
+    input.invalido, select.invalido, textarea.invalido {
+      border-color: var(--erro);
+    }
+
+    textarea { min-height: 88px; resize: vertical; line-height: 1.5; }
+    select   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23555' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+    .row { display: flex; gap: 12px; }
+    .row .campo { flex: 1; }
+
+    /* ── Scanner ── */
+    .scan-row  { display: flex; gap: 10px; align-items: flex-end; }
+    .scan-row .campo { flex: 1; margin-bottom: 0; }
+    .btn-scan  {
+      height: var(--touch);
+      padding: 0 16px;
+      border: 1.5px solid var(--azul);
+      background: var(--azul-bg);
+      color: var(--azul);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    .btn-scan:hover { background: #d0e2f8; }
+
+    #scanner-wrap {
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+      margin: 10px 0;
+      display: none;
+    }
+
+    /* ── Foto ── */
+    .foto-area {
+      border: 2px dashed var(--borda);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .foto-area:hover  { border-color: var(--azul); }
+    .foto-area.valida { border-color: var(--verde); background: var(--verde-bg); }
+    .foto-area.erro   { border-color: var(--erro);  background: var(--erro-bg);  }
+
+    .foto-icon  { font-size: 32px; margin-bottom: 6px; }
+    .foto-texto { font-size: 14px; color: var(--muted); }
+    .foto-ok    { font-size: 14px; font-weight: 600; color: var(--verde); }
+
+    #fotoInput  { display: none; }
+
+    #preview-img {
+      max-width: 100%;
+      max-height: 180px;
+      border-radius: 6px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* ── Alerta de iluminação (modal) ── */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-bg.ativo { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+    }
+    .modal-icon   { font-size: 40px; margin-bottom: 10px; }
+    .modal-titulo { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .modal-texto  { font-size: 14px; color: var(--muted); margin-bottom: 18px; line-height: 1.6; }
+    .modal-btn    {
+      width: 100%;
+      height: 48px;
+      background: var(--azul);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ── Botão principal ── */
+    .btn-enviar {
+      width: 100%;
+      height: 56px;
+      background: var(--azul);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background .15s, transform .1s;
+      letter-spacing: .01em;
+    }
+    .btn-enviar:hover:not(:disabled)  { background: #154d87; }
+    .btn-enviar:active:not(:disabled) { transform: scale(.98); }
+    .btn-enviar:disabled {
+      background: #b0bec5;
+      cursor: not-allowed;
+    }
+
+    /* ── Overlay de carregamento ── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,.92);
+      z-index: 200;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .overlay.ativo { display: flex; }
+
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid #e0e0e0;
+      border-top: 4px solid var(--azul);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .overlay-msg { font-size: 16px; font-weight: 600; color: var(--texto); margin-bottom: 8px; }
+    .overlay-sub { font-size: 13px; color: var(--muted); max-width: 280px; line-height: 1.6; }
+
+    .overlay-sucesso { color: var(--verde); }
+    .overlay-erro    { color: var(--erro);  }
+
+    .ticket-badge {
+      background: var(--verde-bg);
+      border: 1.5px solid var(--verde);
+      color: var(--verde);
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 22px;
+      font-weight: 700;
+      margin: 12px 0;
+      letter-spacing: .04em;
+    }
+
+    .btn-voltar {
+      margin-top: 16px;
+      padding: 12px 28px;
+      border: 1.5px solid var(--borda);
+      background: #fff;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--texto);
+    }
+
+    /* ── Mensagens de erro inline ── */
+    .msg-erro {
+      font-size: 12px;
+      color: var(--erro);
+      margin-top: 4px;
+      display: none;
+    }
+    .msg-erro.visivel { display: block; }
+
+    .separador { border: none; border-top: 1px solid var(--borda); margin: 20px 0; }
+  </style>
+</head>
+<body>
+
+<!-- Modal de orientação de iluminação (aparece antes de abrir a câmera de foto) -->
+<div id="modal-luz" class="modal-bg">
+  <div class="modal-box">
+    <div class="modal-icon">💡</div>
+    <div class="modal-titulo">Antes de tirar a foto</div>
+    <p class="modal-texto">
+      Garanta boa iluminação na área do defeito.<br>
+      Se necessário, <strong>ligue o flash</strong> ou leve a peça para uma área iluminada.<br><br>
+      Fotos escuras ou tremidas dificultam a análise técnica e podem reprovar a evidência.
+    </p>
+    <button class="modal-btn" onclick="abrirCameraFoto()">Entendido — Abrir câmera</button>
+  </div>
+</div>
+
+<!-- Formulário principal -->
+<div class="card">
+  <div class="header">
+    <h1>📋 Abertura de RNC</h1>
+    <p>Preencha todos os campos e anexe a evidência fotográfica</p>
+  </div>
+
+  <form id="rncForm">
+
+    <!-- RE do operador -->
+    <div class="campo">
+      <label for="reOperador">Matrícula (RE) do Inspetor <span class="obrig">*</span></label>
+      <input type="number" id="reOperador" inputmode="numeric" placeholder="Ex: 1042" required>
+      <div class="msg-erro" id="erro-re">RE não reconhecido. Solicite cadastro ao setor de Qualidade.</div>
+    </div>
+
+    <!-- Origem -->
+    <div class="campo">
+      <label for="origemItem">Origem da Peça / Desvio <span class="obrig">*</span></label>
+      <select id="origemItem" required>
+        <option value="">Selecione a origem...</option>
+        <option value="Recebimento">Recebimento de Materiais</option>
+        <option value="Produção Interna">Processo Produtivo Interno</option>
+        <option value="Montagem">Liberação para Montagem Final</option>
+      </select>
+    </div>
+
+    <!-- Código do item com scanner -->
+    <div class="scan-row">
+      <div class="campo">
+        <label for="codigoItem">Código do Item / OP <span class="obrig">*</span></label>
+        <input type="text" id="codigoItem" placeholder="Ex: USI-2024-0087" required>
+      </div>
+      <button type="button" class="btn-scan" onclick="alternarScanner()">📷 Ler</button>
+    </div>
+    <div id="scanner-wrap"><div id="reader"></div></div>
+
+    <!-- Quantidades -->
+    <div class="row">
+      <div class="campo">
+        <label for="qtdLote">Qtd Total do Lote <span class="obrig">*</span></label>
+        <input type="number" id="qtdLote" inputmode="numeric" min="1" placeholder="Ex: 50" required>
+      </div>
+      <div class="campo">
+        <label for="qtdDesvio">Qtd com Defeito <span class="obrig">*</span></label>
+        <input type="number" id="qtdDesvio" inputmode="numeric" min="1" placeholder="Ex: 3" required>
+      </div>
+    </div>
+    <div class="msg-erro" id="erro-qtd">A quantidade com defeito não pode ser maior que o lote total.</div>
+
+    <!-- Setor responsável -->
+    <div class="campo">
+      <label for="setorResponsavel">Departamento Causador <span class="obrig">*</span></label>
+      <select id="setorResponsavel" required>
+        <option value="">Selecione o setor...</option>
+        <option value="Usinagem">Usinagem / Torno</option>
+        <option value="Caldeiraria">Caldeiraria / Solda</option>
+        <option value="Engenharia">Engenharia / Projetos</option>
+        <option value="Suprimentos">Suprimentos / Compras</option>
+        <option value="Qualidade">Qualidade Interna</option>
+      </select>
+    </div>
+
+    <!-- Descrição -->
+    <div class="campo">
+      <label for="descricaoDefeito">Descrição Técnica do Desvio <span class="obrig">*</span></label>
+      <textarea id="descricaoDefeito" placeholder="Ex: Diâmetro do furo fora de tolerância. Nominal Ø42mm medido Ø41,6mm. Rosca com espanamento parcial na face A..." required></textarea>
+    </div>
+
+    <hr class="separador">
+
+    <!-- Evidência fotográfica -->
+    <div class="campo">
+      <label>Evidência Visual Obrigatória <span class="obrig">*</span></label>
+      <div class="foto-area" id="fotoArea" onclick="mostrarModalLuz()">
+        <div class="foto-icon">📷</div>
+        <div class="foto-texto">Toque para fotografar o defeito</div>
+      </div>
+      <input type="file" id="fotoInput" accept="image/*" capture="environment" onchange="processarFoto(this)">
+      <img id="preview-img" src="" alt="Preview da evidência">
+      <div class="msg-erro" id="erro-foto">Foto obrigatória. Toque na área acima para fotografar.</div>
+      <div class="msg-erro" id="erro-tamanho">Imagem ainda muito grande após compressão. Tire uma nova foto com mais distância ou menos zoom.</div>
+    </div>
+
+    <button type="button" id="btnEnviar" class="btn-enviar" onclick="enviarFormulario()">
+      Confirmar e Registrar RNC
+    </button>
+
+  </form>
+</div>
+
+<!-- Overlay de progresso / resultado -->
+<div id="overlay" class="overlay">
+  <div id="overlay-spinner" class="spinner"></div>
+  <div id="overlay-msg" class="overlay-msg">Processando...</div>
+  <div id="overlay-sub" class="overlay-sub">Salvando evidência e gerando dossiê técnico em PDF.</div>
+  <div id="overlay-ticket" class="ticket-badge" style="display:none"></div>
+  <button id="overlay-btn" class="btn-voltar" style="display:none" onclick="resetarFormulario()">
+    Abrir nova RNC
+  </button>
+</div>
+
+<script>
+  // ── Estado do módulo ──────────────────────────────────────────────────────
+  let base64Imagem      = "";
+  let scannerAtivo      = false;
+  let html5Scanner      = null;
+  const LIMITE_BYTES    = 2 * 1024 * 1024; // 2 MB
+
+  // ── Iluminação: modal antes da câmera ────────────────────────────────────
+  function mostrarModalLuz() {
+    document.getElementById("modal-luz").classList.add("ativo");
+  }
+
+  function abrirCameraFoto() {
+    document.getElementById("modal-luz").classList.remove("ativo");
+    document.getElementById("fotoInput").click();
+  }
+
+  // ── Scanner de código de barras ──────────────────────────────────────────
+  function alternarScanner() {
+    const wrap = document.getElementById("scanner-wrap");
+    if (scannerAtivo) {
+      fecharScanner();
+    } else {
+      wrap.style.display = "block";
+      html5Scanner = new Html5Qrcode("reader");
+      html5Scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 260, height: 120 } },
+        (texto) => {
+          document.getElementById("codigoItem").value = texto;
+          fecharScanner();
+        },
+        () => {} // ignora erros de frame
+      ).catch(e => {
+        wrap.style.display = "none";
+        alert("Não foi possível acessar a câmera: " + e);
+      });
+      scannerAtivo = true;
+    }
+  }
+
+  function fecharScanner() {
+    if (html5Scanner) {
+      html5Scanner.stop().then(() => {
+        document.getElementById("scanner-wrap").style.display = "none";
+        scannerAtivo = false;
+      });
+    }
+  }
+
+  // ── Processamento de imagem ───────────────────────────────────────────────
+  function processarFoto(input) {
+    if (!input.files || !input.files[0]) return;
+
+    const arquivo = input.files[0];
+    const leitor  = new FileReader();
+
+    document.getElementById("btnEnviar").disabled = true;
+    document.getElementById("fotoArea").innerHTML = '<div class="foto-texto">Processando imagem...</div>';
+
+    leitor.onload = function(e) {
+      const img = new Image();
+      img.src   = e.target.result;
+
+      img.onload = function() {
+        // Compressão via Canvas: largura máx 800px, JPEG 70%
+        let w = img.width, h = img.height;
+        if (w > 800) { h = Math.round((800 * h) / w); w = 800; }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.70);
+        const base64  = dataUrl.split(",")[1];
+
+        // Hard cap de 2MB pós-compressão (validação no cliente)
+        const bytes = Math.ceil(base64.length * 0.75); // estimativa real de bytes
+        if (bytes > LIMITE_BYTES) {
+          document.getElementById("erro-tamanho").classList.add("visivel");
+          document.getElementById("fotoArea").className = "foto-area erro";
+          document.getElementById("fotoArea").innerHTML =
+            '<div class="foto-icon">⚠️</div><div class="foto-texto">Foto muito grande. Tente novamente.</div>';
+          document.getElementById("btnEnviar").disabled = false;
+          base64Imagem = "";
+          return;
+        }
+
+        document.getElementById("erro-tamanho").classList.remove("visivel");
+        base64Imagem = base64;
+
+        // Preview
+        const preview = document.getElementById("preview-img");
+        preview.src   = dataUrl;
+        preview.style.display = "block";
+
+        document.getElementById("fotoArea").className = "foto-area valida";
+        document.getElementById("fotoArea").innerHTML =
+          '<div class="foto-ok">✓ Evidência capturada</div>' +
+          '<div class="foto-texto" style="margin-top:4px;font-size:12px">' +
+          Math.round(bytes / 1024) + ' KB · Toque para substituir</div>';
+
+        document.getElementById("btnEnviar").disabled = false;
+      };
+
+      img.onerror = () => {
+        alert("Erro ao processar a imagem. Tente novamente.");
+        document.getElementById("btnEnviar").disabled = false;
+      };
+    };
+    leitor.readAsDataURL(arquivo);
+  }
+
+  // ── Validação e envio ─────────────────────────────────────────────────────
+  function enviarFormulario() {
+    // Limpa erros anteriores
+    document.querySelectorAll(".msg-erro").forEach(el => el.classList.remove("visivel"));
+    document.querySelectorAll("input, select, textarea").forEach(el => el.classList.remove("invalido"));
+
+    let valido = true;
+
+    // Campos obrigatórios
+    const campos = ["reOperador", "origemItem", "codigoItem", "qtdLote", "qtdDesvio", "setorResponsavel", "descricaoDefeito"];
+    campos.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) {
+        el.classList.add("invalido");
+        valido = false;
+      }
+    });
+
+    // Qtd desvio ≤ qtd lote
+    const lote   = parseInt(document.getElementById("qtdLote").value) || 0;
+    const desvio = parseInt(document.getElementById("qtdDesvio").value) || 0;
+    if (desvio > lote && lote > 0) {
+      document.getElementById("erro-qtd").classList.add("visivel");
+      document.getElementById("qtdDesvio").classList.add("invalido");
+      valido = false;
+    }
+
+    // Foto obrigatória
+    if (!base64Imagem) {
+      document.getElementById("erro-foto").classList.add("visivel");
+      document.getElementById("fotoArea").className = "foto-area erro";
+      valido = false;
+    }
+
+    if (!valido) {
+      // Rola até o primeiro erro
+      const primeiro = document.querySelector(".invalido, .msg-erro.visivel");
+      if (primeiro) primeiro.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    const dados = {
+      reOperador:       document.getElementById("reOperador").value.trim(),
+      origemItem:       document.getElementById("origemItem").value,
+      codigoItem:       document.getElementById("codigoItem").value.trim(),
+      qtdLote:          document.getElementById("qtdLote").value,
+      qtdDesvio:        document.getElementById("qtdDesvio").value,
+      setorResponsavel: document.getElementById("setorResponsavel").value,
+      descricaoDefeito: document.getElementById("descricaoDefeito").value.trim(),
+    };
+
+    // Mostra overlay de progresso
+    document.getElementById("overlay").classList.add("ativo");
+    document.getElementById("overlay-spinner").style.display = "block";
+    document.getElementById("overlay-msg").className = "overlay-msg";
+    document.getElementById("overlay-msg").textContent = "Enviando RNC...";
+    document.getElementById("overlay-sub").textContent = "Salvando evidência no Drive e gerando dossiê PDF. Aguarde.";
+    document.getElementById("overlay-ticket").style.display = "none";
+    document.getElementById("overlay-btn").style.display = "none";
+
+    google.script.run
+      .withSuccessHandler(onSucesso)
+      .withFailureHandler(onErro)
+      .processarRNC(dados, base64Imagem);
+  }
+
+  function onSucesso(resp) {
+    document.getElementById("overlay-spinner").style.display = "none";
+    document.getElementById("overlay-msg").className = "overlay-msg overlay-sucesso";
+    document.getElementById("overlay-msg").textContent = "RNC registrada com sucesso!";
+    document.getElementById("overlay-sub").textContent = "O responsável pelo setor foi notificado automaticamente.";
+    document.getElementById("overlay-ticket").textContent = resp.ticket;
+    document.getElementById("overlay-ticket").style.display = "block";
+    document.getElementById("overlay-btn").style.display = "block";
+  }
+
+  function onErro(err) {
+    document.getElementById("overlay-spinner").style.display = "none";
+    document.getElementById("overlay-msg").className = "overlay-msg overlay-erro";
+    document.getElementById("overlay-msg").textContent = "Falha no envio";
+    document.getElementById("overlay-sub").textContent = err.message || "Tente novamente. Se o problema persistir, informe a TI.";
+    document.getElementById("overlay-btn").textContent = "Voltar ao formulário";
+    document.getElementById("overlay-btn").style.display = "block";
+  }
+
+  function resetarFormulario() {
+    document.getElementById("overlay").classList.remove("ativo");
+    document.getElementById("rncForm").reset();
+    // Limpa explicitamente o value do input de arquivo após o form.reset().
+    // Sem isso, se o operador escolher o mesmo arquivo de foto novamente,
+    // o evento onchange não dispara e a foto fica travada como "não selecionada".
+    document.getElementById("fotoInput").value = "";
+    document.getElementById("fotoArea").className = "foto-area";
+    document.getElementById("fotoArea").innerHTML =
+      '<div class="foto-icon">📷</div><div class="foto-texto">Toque para fotografar o defeito</div>';
+    document.getElementById("preview-img").style.display = "none";
+    base64Imagem = "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+</script>
+</body>
+</html>

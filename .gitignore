@@ -1,0 +1,22 @@
+# Credenciais — NUNCA commitar
+.env
+*.env.local
+
+# Clasp com Script ID real
+.clasp.json
+
+# Node
+node_modules/
+package-lock.json
+package.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Backups gerados pelo patch_config.py
+*.backup_*
+
+# Mapeamento gerado (pode conter IDs sensíveis — commitar só se desejado)
+# jira_mapeamento_ids.json

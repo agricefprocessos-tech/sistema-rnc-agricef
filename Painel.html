@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agricef · Dashboard Qualidade</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --azul:    #1a56a0;
+      --azul-bg: #e8f0fb;
+      --verde:   #1a7a45;
+      --verde-bg:#e6f4ec;
+      --laranja: #b45309;
+      --laranja-bg:#fef3c7;
+      --erro:    #c0392b;
+      --erro-bg: #fdecea;
+      --borda:   #d0d5dd;
+      --texto:   #1a1a1a;
+      --muted:   #666;
+      --bg:      #f0f2f5;
+      --card:    #ffffff;
+      --radius:  10px;
+    }
+
+    body {
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--texto);
+      padding: 16px;
+    }
+
+    /* ── Cabeçalho ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .header h1    { font-size: 18px; font-weight: 700; color: var(--azul); }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    select.filtro {
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .btn-refresh {
+      height: 38px;
+      padding: 0 16px;
+      background: var(--azul);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-refresh:hover { background: #154d87; }
+    .btn-refresh:disabled { background: #b0bec5; cursor: not-allowed; }
+
+    .timestamp { font-size: 12px; color: var(--muted); }
+
+    /* ── KPI Cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .kpi {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      padding: 16px;
+      border-top: 3px solid transparent;
+    }
+    .kpi.azul   { border-top-color: var(--azul);   }
+    .kpi.verde  { border-top-color: var(--verde);  }
+    .kpi.laranja{ border-top-color: var(--laranja);}
+    .kpi.erro   { border-top-color: var(--erro);   }
+
+    .kpi-valor  { font-size: 28px; font-weight: 700; line-height: 1.1; }
+    .kpi-label  { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+    /* ── Gráficos ── */
+    .graficos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .grafico-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      padding: 18px;
+    }
+    .grafico-titulo {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--texto);
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--borda);
+      padding-bottom: 10px;
+    }
+    .grafico-wrap { position: relative; }
+
+    /* ── Tabela de RNCs recentes ── */
+    .tabela-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      padding: 18px;
+      overflow-x: auto;
+    }
+    .tabela-titulo {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--borda);
+      padding-bottom: 10px;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
+    th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+      padding: 8px;
+      border-bottom: 1px solid var(--borda);
+    }
+    td {
+      padding: 9px 8px;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8f9fb; }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .pill-aberto   { background: var(--azul-bg);   color: var(--azul);   }
+    .pill-concluido{ background: var(--verde-bg);  color: var(--verde);  }
+    .pill-analise  { background: var(--laranja-bg);color: var(--laranja);}
+    .pill-sucata   { background: var(--erro-bg);   color: var(--erro);   }
+    .pill-retrabalho{ background: #f5e6ff; color: #6b21a8; }
+
+    /* ── Loading / vazio ── */
+    .loading {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e0e0e0;
+      border-top: 3px solid var(--azul);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .vazio { text-align: center; color: var(--muted); font-size: 14px; padding: 32px 0; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 Painel de Qualidade — RNC</h1>
+  <div class="header-right">
+    <select id="filtroMes" class="filtro" onchange="recarregar()">
+      <option value="">Todos os períodos</option>
+    </select>
+    <button class="btn-refresh" id="btnRefresh" onclick="recarregar()">↻ Atualizar</button>
+    <span class="timestamp" id="tsAtualizado"></span>
+  </div>
+</div>
+
+<!-- Estado de carregamento inicial -->
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  Sincronizando dados com o Jira...
+</div>
+
+<!-- Conteúdo principal (oculto até carregar) -->
+<div id="conteudo" style="display:none">
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi azul">
+      <div class="kpi-valor" id="kpi-total">—</div>
+      <div class="kpi-label">RNCs no período</div>
+    </div>
+    <div class="kpi erro">
+      <div class="kpi-valor" id="kpi-abertas">—</div>
+      <div class="kpi-label">Abertas / pendentes</div>
+    </div>
+    <div class="kpi laranja">
+      <div class="kpi-valor" id="kpi-sucata">—</div>
+      <div class="kpi-label">Taxa de sucata</div>
+    </div>
+    <div class="kpi verde">
+      <div class="kpi-valor" id="kpi-lead">—</div>
+      <div class="kpi-label">Lead time médio (h) — concluídas</div>
+    </div>
+  </div>
+
+  <!-- Gráficos linha 1 -->
+  <div class="graficos-grid">
+    <div class="grafico-card">
+      <div class="grafico-titulo">Volume de RNCs por setor</div>
+      <div class="grafico-wrap" style="height:220px">
+        <canvas id="grafico-setor"></canvas>
+      </div>
+    </div>
+    <div class="grafico-card">
+      <div class="grafico-titulo">Destino das peças (disposição)</div>
+      <div class="grafico-wrap" style="height:220px">
+        <canvas id="grafico-disposicao"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos linha 2 -->
+  <div class="graficos-grid">
+    <div class="grafico-card">
+      <div class="grafico-titulo">Lead time médio por setor (horas) — apenas concluídas</div>
+      <div class="grafico-wrap" style="height:220px">
+        <canvas id="grafico-leadtime"></canvas>
+      </div>
+    </div>
+    <div class="grafico-card">
+      <div class="grafico-titulo">Causa raiz dos desvios</div>
+      <div class="grafico-wrap" style="height:220px">
+        <canvas id="grafico-causa"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela de RNCs recentes -->
+  <div class="tabela-card">
+    <div class="tabela-titulo">Últimas RNCs registradas</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Data</th>
+          <th>Origem</th>
+          <th>Setor</th>
+          <th>Disposição</th>
+          <th>Status</th>
+          <th>Lead Time</th>
+          <th>Dossiê</th>
+        </tr>
+      </thead>
+      <tbody id="tabela-body">
+        <tr><td colspan="8" class="vazio">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  // ── Paleta de cores ──────────────────────────────────────────────────────
+  const CORES = [
+    "#1a56a0", "#1a7a45", "#b45309", "#c0392b",
+    "#6b21a8", "#0e7490", "#854d0e", "#166534",
+  ];
+
+  // ── Instâncias dos gráficos ─────────────────────────────────────────────
+  let charts = {};
+
+  // ── Inicialização ────────────────────────────────────────────────────────
+  window.onload = () => {
+    carregarMeses();
+  };
+
+  function carregarMeses() {
+    google.script.run
+      .withSuccessHandler(populaFiltroMes)
+      .withFailureHandler(onErro)
+      .buscarMesesDisponiveis();
+  }
+
+  function populaFiltroMes(meses) {
+    const sel = document.getElementById("filtroMes");
+    meses.forEach(m => {
+      const opt   = document.createElement("option");
+      opt.value   = m.valor;
+      opt.textContent = m.label;
+      sel.appendChild(opt);
+    });
+    // Seleciona o mês corrente por padrão se disponível
+    const hoje = new Date();
+    const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
+    if (meses.find(m => m.valor === mesAtual)) sel.value = mesAtual;
+
+    recarregar();
+  }
+
+  function recarregar() {
+    const mes = document.getElementById("filtroMes").value;
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("conteudo").style.display = "none";
+    document.getElementById("btnRefresh").disabled = true;
+
+    const filtros = mes ? { mesAno: mes } : null;
+
+    google.script.run
+      .withSuccessHandler(renderizar)
+      .withFailureHandler(onErro)
+      .buscarDadosDashboard(filtros);
+  }
+
+  // ── Renderização principal ───────────────────────────────────────────────
+  function renderizar(dados) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("conteudo").style.display = "block";
+    document.getElementById("btnRefresh").disabled = false;
+    document.getElementById("tsAtualizado").textContent =
+      "Atualizado: " + new Date().toLocaleTimeString("pt-BR");
+
+    if (!dados || dados.length === 0) {
+      document.getElementById("tabela-body").innerHTML =
+        '<tr><td colspan="8" class="vazio">Nenhuma RNC encontrada para o período selecionado.</td></tr>';
+      atualizarKPIs([], []);
+      return;
+    }
+
+    // Segmenta dados
+    const concluidas = dados.filter(r => r.status === "Concluído" && r.leadTimeH !== null);
+    const abertas    = dados.filter(r => r.status !== "Concluído");
+
+    atualizarKPIs(dados, concluidas);
+    renderGraficoSetor(dados);
+    renderGraficoDisposicao(dados);
+    renderGraficoLeadTime(concluidas);
+    renderGraficoCausa(dados);
+    renderTabela(dados.slice(0, 30)); // exibe até 30 mais recentes
+  }
+
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  function atualizarKPIs(dados, concluidas) {
+    const total   = dados.length;
+    const abertas = dados.filter(r => r.status !== "Concluído").length;
+    const sucata  = dados.filter(r => r.disposicao === "Sucata").length;
+    const taxaSuc = total > 0 ? Math.round((sucata / total) * 100) : 0;
+
+    const leadMedio = concluidas.length > 0
+      ? Math.round(concluidas.reduce((s, r) => s + r.leadTimeH, 0) / concluidas.length)
+      : null;
+
+    document.getElementById("kpi-total").textContent  = total;
+    document.getElementById("kpi-abertas").textContent = abertas;
+    document.getElementById("kpi-sucata").textContent  = taxaSuc + "%";
+    document.getElementById("kpi-lead").textContent    = leadMedio !== null ? leadMedio + "h" : "—";
+  }
+
+  // ── Gráfico: Volume por setor ──────────────────────────────────────────────
+  function renderGraficoSetor(dados) {
+    const contagem = agrupar(dados, "setor");
+    const labels   = Object.keys(contagem).sort((a,b) => contagem[b] - contagem[a]);
+    const valores  = labels.map(l => contagem[l]);
+
+    destruir("grafico-setor");
+    charts["setor"] = new Chart(document.getElementById("grafico-setor"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "RNCs",
+          data: valores,
+          backgroundColor: CORES.slice(0, labels.length),
+          borderRadius: 4,
+          borderSkipped: false,
+        }],
+      },
+      options: baseOptions(""),
+    });
+  }
+
+  // ── Gráfico: Disposição ───────────────────────────────────────────────────
+  function renderGraficoDisposicao(dados) {
+    const contagem = agrupar(dados, "disposicao");
+    const labels   = Object.keys(contagem);
+    const valores  = labels.map(l => contagem[l]);
+
+    destruir("grafico-disposicao");
+    charts["disposicao"] = new Chart(document.getElementById("grafico-disposicao"), {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{
+          data: valores,
+          backgroundColor: CORES.slice(0, labels.length),
+          borderWidth: 2,
+          borderColor: "#fff",
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "right", labels: { font: { size: 12 }, boxWidth: 14 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } },
+        },
+      },
+    });
+  }
+
+  // ── Gráfico: Lead Time por setor ──────────────────────────────────────────
+  function renderGraficoLeadTime(concluidas) {
+    if (concluidas.length === 0) {
+      destruir("grafico-leadtime");
+      const ctx = document.getElementById("grafico-leadtime").getContext("2d");
+      ctx.clearRect(0, 0, 9999, 9999);
+      ctx.fillStyle = "#999";
+      ctx.font = "13px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Sem RNCs concluídas no período", ctx.canvas.width/2, ctx.canvas.height/2);
+      return;
+    }
+
+    // Média de horas por setor
+    const soma    = {};
+    const contagem = {};
+    concluidas.forEach(r => {
+      soma[r.setor]     = (soma[r.setor]     || 0) + r.leadTimeH;
+      contagem[r.setor] = (contagem[r.setor] || 0) + 1;
+    });
+
+    const labels  = Object.keys(soma).sort((a,b) => (soma[b]/contagem[b]) - (soma[a]/contagem[a]));
+    const medias  = labels.map(l => Math.round(soma[l] / contagem[l]));
+
+    destruir("grafico-leadtime");
+    charts["leadtime"] = new Chart(document.getElementById("grafico-leadtime"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Horas médias",
+          data: medias,
+          backgroundColor: medias.map(v => v > 48 ? "#c0392b" : v > 24 ? "#b45309" : "#1a7a45"),
+          borderRadius: 4,
+          borderSkipped: false,
+        }],
+      },
+      options: {
+        // Opções próprias para barras horizontais: NÃO usar spread de baseOptions()
+        // pois indexAxis:"y" inverte os papéis de x/y e a configuração de eixos
+        // do baseOptions (beginAtZero no y, grid no x) ficaria no eixo errado.
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: "y", // barras horizontais — mais legível para rótulos longos
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.raw} horas` } },
+        },
+        scales: {
+          // Com indexAxis:"y": x é o eixo de valores, y é o eixo de categorias
+          x: { grid: { color: "#f0f0f0" }, ticks: { font: { size: 11 } }, beginAtZero: true },
+          y: { grid: { display: false },   ticks: { font: { size: 11 } } },
+        },
+      },
+    });
+  }
+
+  // ── Gráfico: Causa raiz ───────────────────────────────────────────────────
+  function renderGraficoCausa(dados) {
+    const semCausa = dados.filter(d => d.causaRaiz && d.causaRaiz !== "—");
+    const contagem = agrupar(semCausa, "causaRaiz");
+    const labels   = Object.keys(contagem).sort((a,b) => contagem[b] - contagem[a]);
+    const valores  = labels.map(l => contagem[l]);
+
+    destruir("grafico-causa");
+    charts["causa"] = new Chart(document.getElementById("grafico-causa"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Ocorrências",
+          data: valores,
+          backgroundColor: "#6b21a8",
+          borderRadius: 4,
+          borderSkipped: false,
+        }],
+      },
+      options: baseOptions(""),
+    });
+  }
+
+  // ── Tabela ────────────────────────────────────────────────────────────────
+  function renderTabela(dados) {
+    const tbody = document.getElementById("tabela-body");
+    if (!dados.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="vazio">Sem dados.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = dados.map(r => {
+      const statusPill = pillStatus(r.status);
+      const dispPill   = pillDisposicao(r.disposicao);
+      const lead       = r.leadTimeH !== null ? r.leadTimeH + "h" : "<span style='color:#999'>Em aberto</span>";
+      const pdf        = r.urlPdf
+        ? `<a href="${r.urlPdf}" target="_blank" style="color:var(--azul);font-weight:600;font-size:12px">PDF</a>`
+        : "—";
+      return `
+        <tr>
+          <td><strong>${r.ticket}</strong></td>
+          <td>${r.dataCriacao}</td>
+          <td>${r.origem}</td>
+          <td>${r.setor}</td>
+          <td>${dispPill}</td>
+          <td>${statusPill}</td>
+          <td>${lead}</td>
+          <td>${pdf}</td>
+        </tr>`;
+    }).join("");
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function agrupar(arr, chave) {
+    return arr.reduce((acc, item) => {
+      const val = item[chave] || "—";
+      acc[val] = (acc[val] || 0) + 1;
+      return acc;
+    }, {});
+  }
+
+  function destruir(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  }
+
+  function baseOptions(labelY) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}${labelY ? " " + labelY : ""}` } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: "#f0f0f0" }, ticks: { font: { size: 11 } }, beginAtZero: true },
+      },
+    };
+  }
+
+  function pillStatus(s) {
+    const m = {
+      "Concluído":   "pill-concluido",
+      "Em Análise":  "pill-analise",
+      "Aberto":      "pill-aberto",
+      "Plano de Ação":"pill-analise",
+      "Verificação QA":"pill-analise",
+    };
+    return `<span class="pill ${m[s] || "pill-aberto"}">${s}</span>`;
+  }
+
+  function pillDisposicao(d) {
+    const m = {
+      "Sucata":    "pill-sucata",
+      "Retrabalho":"pill-retrabalho",
+      "Concessão": "pill-analise",
+      "Devolução": "pill-aberto",
+      "Pendente":  "pill-aberto",
+    };
+    return `<span class="pill ${m[d] || "pill-aberto"}">${d}</span>`;
+  }
+
+  function onErro(err) {
+    document.getElementById("loading").innerHTML =
+      `<div style="color:#c0392b;font-size:14px">⚠ Erro ao carregar dados: ${err.message || err}<br><br>
+       <button onclick="recarregar()" style="padding:8px 16px;border:1px solid #c0392b;background:#fdecea;color:#c0392b;border-radius:6px;cursor:pointer">Tentar novamente</button></div>`;
+    document.getElementById("btnRefresh").disabled = false;
+  }
+</script>
+</body>
+</html>
