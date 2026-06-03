@@ -147,18 +147,25 @@ function processarRNC(dados, base64Imagem) {
     throw new Error("ACESSO NEGADO: Registro de Empregado (RE) não autorizado. Solicite cadastro ao setor de Qualidade.");
   }
 
-  // 2. Valida tamanho da imagem (hard cap de 2MB no servidor, reforço ao client-side)
-  const tamanhoBytes = Utilities.base64Decode(base64Imagem).length;
-  if (tamanhoBytes > CONFIG.MAX_IMG_BASE64_BYTES) {
-    throw new Error("Imagem excede 2MB mesmo após compressão. Tire uma nova foto com menos detalhes ou distância maior.");
+  // 2. Valida tamanho da imagem (apenas se enviada — foto é opcional)
+  if (base64Imagem) {
+    const tamanhoBytes = Utilities.base64Decode(base64Imagem).length;
+    if (tamanhoBytes > CONFIG.MAX_IMG_BASE64_BYTES) {
+      throw new Error("Imagem excede 2MB mesmo após compressão. Tire uma nova foto com menos detalhes ou distância maior.");
+    }
   }
 
   // 3. Cria pasta do mês com semáforo anti-race-condition
   const pastaDestino = _garantirPastaMes();
 
   try {
-    // 4. Salva imagem no Drive e obtém URL
-    const { blobImagem, urlImagem } = _salvarImagem(base64Imagem, dados.codigoItem, pastaDestino);
+    // 4. Salva imagem no Drive e obtém URL (se houver foto)
+    let blobImagem = null, urlImagem = null;
+    if (base64Imagem) {
+      const img = _salvarImagem(base64Imagem, dados.codigoItem, pastaDestino);
+      blobImagem = img.blobImagem;
+      urlImagem  = img.urlImagem;
+    }
 
     // 5. Cria ticket no Jira sem URL do PDF (ainda não existe)
     //    Assim o número do ticket fica disponível para o dossiê PDF.
@@ -385,9 +392,9 @@ function _gerarPdf(dados, blobImagem, pasta, ticketKey) {
   };
   Object.entries(tagMap).forEach(([tag, valor]) => corpo.replaceText(tag, valor));
 
-  // Injeção da imagem no marcador {{FOTO_DEFEITO}}
+  // Injeção da imagem no marcador {{FOTO_DEFEITO}} (apenas se houver foto)
   const marcador = corpo.findText("\\{\\{FOTO_DEFEITO\\}\\}");
-  if (marcador) {
+  if (marcador && blobImagem) {
     const paragrafo = marcador.getElement().getParent().asParagraph();
     const img       = paragrafo.appendInlineImage(blobImagem);
     // Redimensiona proporcionalmente para caber na largura A4 (máx 450pt)
@@ -422,30 +429,33 @@ function _enviarParaJira(dados, urlPdf, urlImagem) {
   const token = props.getProperty("JIRA_TOKEN");
   const cred  = Utilities.base64Encode(email + ":" + token);
 
-  // Descrição ADF — linha do PDF só aparece se a URL já existir
+  // Descrição ADF
   const adfContent = [
     {
       type: "paragraph",
       content: [
         { type: "text", text: "Aberta via Web App pelo RE: ", marks: [{ type: "strong" }] },
-        { type: "text", text: dados.reOperador },
+        { type: "text", text: String(dados.reOperador) },
       ],
     },
     {
       type: "paragraph",
       content: [
-        { type: "text", text: "Descrição técnica do desvio:\n", marks: [{ type: "strong" }] },
-        { type: "text", text: dados.descricaoDefeito },
+        { type: "text", text: "Descrição técnica do desvio: ", marks: [{ type: "strong" }] },
+        { type: "text", text: String(dados.descricaoDefeito) },
       ],
     },
-    {
+  ];
+  // Adiciona link de foto apenas se houver imagem
+  if (urlImagem) {
+    adfContent.push({
       type: "paragraph",
       content: [
         { type: "text", text: "Evidência visual (foto): ", marks: [{ type: "strong" }] },
         { type: "text", text: urlImagem, marks: [{ type: "link", attrs: { href: urlImagem } }] },
       ],
-    },
-  ];
+    });
+  }
 
   // Campos do payload
   const fields = {
