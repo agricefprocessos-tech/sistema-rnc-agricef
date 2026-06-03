@@ -24,8 +24,8 @@ const CONFIG = {
                                                                  // Crie uma planilha no Drive, copie o ID da URL
                                                                  // e cole aqui. NUNCA use getActiveSpreadsheet()
                                                                  // em Web Apps standalone — não há planilha ativa.
-  JIRA_PROJECT:    "RNC",                    // Chave do projeto no Jira
-  JIRA_ISSUE_TYPE: "10040",                  // ID do Issue Type "Não Conformidade" (gerado pelo setup_jira.mjs)
+  JIRA_PROJECT:    "SGQ",                    // Chave do projeto no Jira (atualizado para SGQ em 03/06/2026)
+  JIRA_ISSUE_TYPE: "10074",                  // ID do Issue Type padrão do projeto SGQ (Business project)
   // Mapa de Custom Fields — IDs gerados pelo setup_jira.mjs em 03/06/2026
   CF: {
     ORIGEM:       "customfield_10053",  // Origem do Item
@@ -52,11 +52,19 @@ const CONFIG = {
  * ?page=painel        → Painel.html (dashboard do gestor)
  */
 function doGet(e) {
+  const chave = e && e.parameters && e.parameters.page ? e.parameters.page[0] : null;
+
+  // ── Endpoint JSON para o Painel GitHub Pages ──────────────────────────────
+  // ?page=api&action=dashboard[&mesAno=2026-06]
+  // ?page=api&action=meses
+  if (chave === "api") {
+    return _handleApiRequest(e);
+  }
+
+  // ── Páginas HTML normais ──────────────────────────────────────────────────
   const paginas = {
     painel: { arquivo: "Painel", titulo: "Agricef · Dashboard Qualidade" },
   };
-
-  const chave  = e && e.parameters && e.parameters.page ? e.parameters.page[0] : null;
   const config = paginas[chave] || { arquivo: "Index", titulo: "Agricef · Abertura de RNC" };
 
   return HtmlService.createTemplateFromFile(config.arquivo)
@@ -64,6 +72,36 @@ function doGet(e) {
     .setTitle(config.titulo)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag("viewport", "width=device-width, initial-scale=1.0");
+}
+
+/**
+ * Responde requisições JSON do Painel GitHub Pages.
+ * Retorna ContentService (texto puro) com MIME JSON para suportar fetch() externo.
+ */
+function _handleApiRequest(e) {
+  const params = (e && e.parameters) || {};
+  const action = params.action ? params.action[0] : "";
+  const mesAno = params.mesAno ? params.mesAno[0] : null;
+
+  try {
+    let resultado;
+    if (action === "meses") {
+      resultado = buscarMesesDisponiveis();
+    } else {
+      // default: dashboard
+      const filtros = mesAno ? { mesAno } : null;
+      resultado = buscarDadosDashboard(filtros);
+    }
+
+    const json = JSON.stringify({ ok: true, data: resultado });
+    return ContentService.createTextOutput(json)
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    const json = JSON.stringify({ ok: false, error: err.message });
+    return ContentService.createTextOutput(json)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 /**
@@ -177,7 +215,7 @@ function buscarDadosDashboard(filtros) {
                                 // ficaria fora de escopo no while() e causaria ReferenceError)
 
   do {
-    const url = `${base}/search?jql=${encodeURIComponent(jql)}&startAt=${startAt}&maxResults=${PAGE_SIZE}&fields=${encodeURIComponent(fields)}`;
+    const url = `${base}/search/jql?jql=${encodeURIComponent(jql)}&startAt=${startAt}&maxResults=${PAGE_SIZE}&fields=${encodeURIComponent(fields)}`;
     const res  = UrlFetchApp.fetch(url, { method: "get", headers, muteHttpExceptions: true });
 
     if (res.getResponseCode() !== 200) {
@@ -233,7 +271,7 @@ function buscarMesesDisponiveis() {
   const cred  = Utilities.base64Encode(email + ":" + token);
 
   const jql = `project = ${CONFIG.JIRA_PROJECT} ORDER BY created ASC`;
-  const url  = `${base}/search?jql=${encodeURIComponent(jql)}&maxResults=1&fields=created`;
+  const url  = `${base}/search/jql?jql=${encodeURIComponent(jql)}&maxResults=1&fields=created`;
   const res  = UrlFetchApp.fetch(url, { method: "get", headers: { "Authorization": "Basic " + cred }, muteHttpExceptions: true });
 
   if (res.getResponseCode() !== 200) return [];
