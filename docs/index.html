@@ -194,7 +194,7 @@
 
   <!-- Foto -->
   <div class="card">
-    <div class="card-titulo">Evidência Visual *</div>
+    <div class="card-titulo">Evidência Visual <span style="font-size:0.75rem;color:#888;font-weight:400">(opcional)</span></div>
     <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none" onchange="processarFoto(this)">
     <button class="btn btn-secondary btn-block" onclick="document.getElementById('fotoInput').click()">📷 Tirar / Selecionar Foto</button>
     <img id="fotoPreview" class="foto-preview" alt="Prévia da foto">
@@ -356,7 +356,7 @@ async function enviarRNC() {
   for (const f of obrigatorios) {
     if (!dados[f]) { mostrarAlerta('Preencha todos os campos obrigatórios.', 'erro'); focar(f); return; }
   }
-  if (!fotoBase64) { mostrarAlerta('Adicione uma foto da evidência.', 'erro'); return; }
+  // foto é opcional — segue sem imagem se não houver
 
   const btn = document.getElementById('btnEnviar');
   btn.disabled = true;
