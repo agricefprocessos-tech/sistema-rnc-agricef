@@ -3,6 +3,18 @@
 
 ---
 
+## 🚀 URLs de produção
+
+| Destino | URL |
+|---|---|
+| **Formulário RNC** (operadores via QR Code) | https://script.google.com/macros/s/AKfycbxWfAUYEzfQbCVaDsP-VVrFR5TiCBtvDuzhgwIvHZKCVxUnBo8oiTwYi0XRFpDdCLn5Ng/exec |
+| **Painel de Qualidade** (gestores) | https://script.google.com/macros/s/AKfycbxWfAUYEzfQbCVaDsP-VVrFR5TiCBtvDuzhgwIvHZKCVxUnBo8oiTwYi0XRFpDdCLn5Ng/exec?page=painel |
+| **Editor Apps Script** | https://script.google.com/d/12Ek6woUxKH64zAgNDyJP1_tsoB5FCheftkL1Cda00s90bP1nnsKI72RP/edit |
+| **Projeto Jira** | https://agricef-qualidade.atlassian.net/jira/software/projects/RNC/boards |
+| **Repositório GitHub** | https://github.com/agricefprocessos-tech/sistema-rnc-agricef |
+
+---
+
 ## Arquivos do projeto
 
 | Arquivo | Função |
