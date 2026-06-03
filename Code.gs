@@ -75,6 +75,22 @@ function doGet(e) {
 }
 
 /**
+ * Recebe o formulário RNC enviado pelo app GitHub Pages via fetch POST.
+ * Content-Type: text/plain (evita preflight CORS).
+ */
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const result  = processarRNC(payload.dados, payload.imagem);
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, data: result }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
  * Responde requisições JSON do Painel GitHub Pages.
  * Retorna ContentService (texto puro) com MIME JSON para suportar fetch() externo.
  */

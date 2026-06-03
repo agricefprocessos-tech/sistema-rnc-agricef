@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Agricef · Sistema de Qualidade RNC</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --azul:#1a56a0; --azul-bg:#e8f0fb; --verde:#1a7a45; --verde-bg:#e6f4ec;
+      --laranja:#b45309; --laranja-bg:#fef3c7; --erro:#c0392b; --erro-bg:#fdecea;
+      --borda:#d0d5dd; --texto:#1a1a1a; --muted:#666; --bg:#f0f2f5; --card:#fff; --radius:10px;
+    }
+    body { background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--texto); min-height:100vh; }
+
+    /* ── NAV ── */
+    .nav { background:var(--azul); padding:0 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+    .nav-brand { color:#fff; font-size:15px; font-weight:700; padding:14px 0; display:flex; align-items:center; gap:8px; }
+    .nav-tabs { display:flex; gap:4px; }
+    .nav-tab { padding:12px 18px; color:rgba(255,255,255,.75); font-size:14px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; transition:.15s; background:none; border-top:none; border-left:none; border-right:none; }
+    .nav-tab:hover { color:#fff; }
+    .nav-tab.ativo { color:#fff; border-bottom-color:#fff; }
+
+    /* ── PÁGINAS ── */
+    .pagina { display:none; padding:20px 16px; max-width:900px; margin:0 auto; }
+    .pagina.ativa { display:block; }
+
+    /* ── CARDS ── */
+    .card { background:var(--card); border-radius:var(--radius); box-shadow:0 1px 4px rgba(0,0,0,.07); padding:20px; margin-bottom:16px; }
+    .card-titulo { font-size:15px; font-weight:700; color:var(--azul); margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--borda); }
+
+    /* ── FORMULÁRIO ── */
+    .form-group { margin-bottom:14px; }
+    label { display:block; font-size:13px; font-weight:600; color:var(--texto); margin-bottom:5px; }
+    input, select, textarea {
+      width:100%; padding:10px 12px; border:1px solid var(--borda); border-radius:8px;
+      font-size:14px; color:var(--texto); background:#fff; transition:.15s;
+    }
+    input:focus, select:focus, textarea:focus { outline:none; border-color:var(--azul); box-shadow:0 0 0 3px rgba(26,86,160,.1); }
+    textarea { min-height:90px; resize:vertical; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media(max-width:480px){ .form-row { grid-template-columns:1fr; } }
+
+    /* ── BOTÕES ── */
+    .btn { padding:11px 20px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:.15s; display:inline-flex; align-items:center; gap:6px; }
+    .btn-primary { background:var(--azul); color:#fff; }
+    .btn-primary:hover { background:#154d87; }
+    .btn-primary:disabled { background:#b0bec5; cursor:not-allowed; }
+    .btn-secondary { background:#f1f5f9; color:var(--texto); border:1px solid var(--borda); }
+    .btn-secondary:hover { background:#e2e8f0; }
+    .btn-danger { background:var(--erro-bg); color:var(--erro); border:1px solid #fca5a5; }
+    .btn-block { width:100%; justify-content:center; }
+
+    /* ── SCANNER ── */
+    .scanner-wrap { border:2px dashed var(--borda); border-radius:8px; overflow:hidden; margin-bottom:10px; }
+    #scanner-preview { width:100%; }
+    .scanner-resultado { background:var(--azul-bg); color:var(--azul); padding:8px 12px; border-radius:6px; font-size:13px; font-weight:600; display:none; }
+
+    /* ── FOTO ── */
+    .foto-preview { width:100%; max-height:220px; object-fit:contain; border-radius:8px; border:1px solid var(--borda); display:none; margin-top:8px; }
+    .foto-info { font-size:12px; color:var(--muted); margin-top:4px; }
+
+    /* ── ALERTA ── */
+    .alerta { padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:12px; display:none; }
+    .alerta-erro { background:var(--erro-bg); color:var(--erro); border:1px solid #fca5a5; }
+    .alerta-ok   { background:var(--verde-bg); color:var(--verde); border:1px solid #86efac; }
+
+    /* ── KPIs ── */
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
+    .kpi { background:var(--card); border-radius:var(--radius); box-shadow:0 1px 4px rgba(0,0,0,.07); padding:14px 16px; border-top:3px solid transparent; }
+    .kpi.azul{border-top-color:var(--azul);} .kpi.verde{border-top-color:var(--verde);}
+    .kpi.laranja{border-top-color:var(--laranja);} .kpi.erro{border-top-color:var(--erro);}
+    .kpi-valor { font-size:26px; font-weight:700; } .kpi-label { font-size:11px; color:var(--muted); margin-top:3px; }
+
+    /* ── GRÁFICOS ── */
+    .graficos-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:16px; }
+    .g-card { background:var(--card); border-radius:var(--radius); box-shadow:0 1px 4px rgba(0,0,0,.07); padding:16px; }
+    .g-titulo { font-size:13px; font-weight:600; margin-bottom:12px; border-bottom:1px solid var(--borda); padding-bottom:8px; }
+
+    /* ── TABELA ── */
+    .tabela-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:13px; min-width:580px; }
+    th { text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:8px; border-bottom:1px solid var(--borda); }
+    td { padding:9px 8px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+    tr:last-child td{border-bottom:none;} tr:hover td{background:#f8f9fb;}
+    .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; }
+    .pill-aberto{background:var(--azul-bg);color:var(--azul);} .pill-concluido{background:var(--verde-bg);color:var(--verde);}
+    .pill-analise{background:var(--laranja-bg);color:var(--laranja);} .pill-sucata{background:var(--erro-bg);color:var(--erro);}
+    .pill-retrabalho{background:#f5e6ff;color:#6b21a8;}
+
+    /* ── FILTRO PAINEL ── */
+    .painel-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+    .painel-header h2 { font-size:16px; font-weight:700; color:var(--azul); }
+    .header-right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    select.filtro { height:36px; padding:0 10px; border:1px solid var(--borda); border-radius:8px; font-size:13px; background:#fff; cursor:pointer; }
+    .btn-refresh { height:36px; padding:0 14px; background:var(--azul); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-refresh:disabled { background:#b0bec5; }
+    .timestamp { font-size:11px; color:var(--muted); }
+
+    /* ── LOADING ── */
+    .loading { text-align:center; padding:40px 16px; color:var(--muted); }
+    .spinner { width:32px; height:32px; border:3px solid #e0e0e0; border-top:3px solid var(--azul); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px; }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .vazio { text-align:center; color:var(--muted); font-size:13px; padding:28px 0; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">🏭 Agricef · Qualidade</div>
+  <div class="nav-tabs">
+    <button class="nav-tab ativo" onclick="trocarPagina('form',this)">📋 Abertura RNC</button>
+    <button class="nav-tab" onclick="trocarPagina('painel',this)">📊 Painel</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA: FORMULÁRIO
+══════════════════════════════════════════════════════ -->
+<div id="pg-form" class="pagina ativa">
+
+  <div id="alerta-form" class="alerta"></div>
+
+  <!-- Identificação -->
+  <div class="card">
+    <div class="card-titulo">Identificação</div>
+
+    <div class="form-group">
+      <label>RE do Operador *</label>
+      <input type="text" id="reOperador" placeholder="Ex: 1001" inputmode="numeric">
+    </div>
+
+    <div class="form-group">
+      <label>Código do Item / OP *</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="codigoItem" placeholder="Ex: ABC-1234" style="flex:1">
+        <button class="btn btn-secondary" onclick="toggleScanner()" id="btnScanner">📷 Scan</button>
+      </div>
+      <div class="scanner-wrap" id="scannerWrap" style="display:none;margin-top:8px">
+        <div id="scanner-preview"></div>
+      </div>
+      <div class="scanner-resultado" id="scannerResultado"></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Origem do Item *</label>
+        <select id="origemItem">
+          <option value="">Selecione...</option>
+          <option>Recebimento</option>
+          <option>Producao Interna</option>
+          <option>Montagem</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Setor Responsável *</label>
+        <select id="setorResponsavel">
+          <option value="">Selecione...</option>
+          <option>Usinagem</option>
+          <option>Caldeiraria</option>
+          <option>Engenharia</option>
+          <option>Suprimentos</option>
+          <option>Qualidade</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quantidades -->
+  <div class="card">
+    <div class="card-titulo">Rastreabilidade</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Qtd Total do Lote *</label>
+        <input type="number" id="qtdLote" placeholder="0" min="0" inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label>Qtd com Desvio *</label>
+        <input type="number" id="qtdDesvio" placeholder="0" min="0" inputmode="numeric">
+      </div>
+    </div>
+  </div>
+
+  <!-- Descrição -->
+  <div class="card">
+    <div class="card-titulo">Descrição do Desvio</div>
+    <div class="form-group">
+      <textarea id="descricaoDefeito" placeholder="Descreva o desvio encontrado com detalhes técnicos..."></textarea>
+    </div>
+  </div>
+
+  <!-- Foto -->
+  <div class="card">
+    <div class="card-titulo">Evidência Visual *</div>
+    <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none" onchange="processarFoto(this)">
+    <button class="btn btn-secondary btn-block" onclick="document.getElementById('fotoInput').click()">📷 Tirar / Selecionar Foto</button>
+    <img id="fotoPreview" class="foto-preview" alt="Prévia da foto">
+    <div class="foto-info" id="fotoInfo"></div>
+  </div>
+
+  <!-- Enviar -->
+  <button class="btn btn-primary btn-block" id="btnEnviar" onclick="enviarRNC()" style="margin-bottom:20px">
+    ✅ Registrar Não Conformidade
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PÁGINA: PAINEL
+══════════════════════════════════════════════════════ -->
+<div id="pg-painel" class="pagina">
+
+  <div class="painel-header">
+    <h2>📊 Painel de Qualidade — RNC</h2>
+    <div class="header-right">
+      <select id="filtroMes" class="filtro" onchange="recarregarPainel()">
+        <option value="">Todos os períodos</option>
+      </select>
+      <button class="btn-refresh" id="btnRefresh" onclick="recarregarPainel()">↻</button>
+      <span class="timestamp" id="tsAtualizado"></span>
+    </div>
+  </div>
+
+  <div id="painel-loading" class="loading">
+    <div class="spinner"></div>Sincronizando com o Jira...
+  </div>
+
+  <div id="painel-conteudo" style="display:none">
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi azul"><div class="kpi-valor" id="kpi-total">—</div><div class="kpi-label">RNCs no período</div></div>
+      <div class="kpi erro"><div class="kpi-valor" id="kpi-abertas">—</div><div class="kpi-label">Abertas / pendentes</div></div>
+      <div class="kpi laranja"><div class="kpi-valor" id="kpi-sucata">—</div><div class="kpi-label">Taxa de sucata</div></div>
+      <div class="kpi verde"><div class="kpi-valor" id="kpi-lead">—</div><div class="kpi-label">Lead time médio (h)</div></div>
+    </div>
+
+    <!-- Gráficos linha 1 -->
+    <div class="graficos-grid">
+      <div class="g-card"><div class="g-titulo">Volume por setor</div><div style="position:relative;height:200px"><canvas id="g-setor"></canvas></div></div>
+      <div class="g-card"><div class="g-titulo">Disposição das peças</div><div style="position:relative;height:200px"><canvas id="g-disposicao"></canvas></div></div>
+    </div>
+    <!-- Gráficos linha 2 -->
+    <div class="graficos-grid">
+      <div class="g-card"><div class="g-titulo">Lead time médio por setor (h)</div><div style="position:relative;height:200px"><canvas id="g-leadtime"></canvas></div></div>
+      <div class="g-card"><div class="g-titulo">Causa raiz dos desvios</div><div style="position:relative;height:200px"><canvas id="g-causa"></canvas></div></div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card">
+      <div class="card-titulo">Últimas RNCs registradas</div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr>
+            <th>Ticket</th><th>Data</th><th>Setor</th><th>Disposição</th><th>Status</th><th>Lead Time</th><th>PDF</th>
+          </tr></thead>
+          <tbody id="tabela-body"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════════ -->
+<script>
+// ════════════════════════════════════════════════════
+// ⚙️  CONFIGURAÇÃO — URL do Google Apps Script Web App
+// ════════════════════════════════════════════════════
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxWfAUYEzfQbCVaDsP-VVrFR5TiCBtvDuzhgwIvHZKCVxUnBo8oiTwYi0XRFpDdCLn5Ng/exec";
+
+// ── Navegação ────────────────────────────────────────
+function trocarPagina(id, tab) {
+  document.querySelectorAll('.pagina').forEach(p => p.classList.remove('ativa'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('ativo'));
+  document.getElementById('pg-' + id).classList.add('ativa');
+  tab.classList.add('ativo');
+  if (id === 'painel' && !painelCarregado) iniciarPainel();
+}
+
+// ════════════════════════════════════════════════════
+// FORMULÁRIO
+// ════════════════════════════════════════════════════
+let fotoBase64 = null;
+let scanner    = null;
+let scannerOn  = false;
+
+// ── Foto ─────────────────────────────────────────────
+function processarFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      fotoBase64 = canvas.toDataURL('image/jpeg', 0.70).split(',')[1];
+      document.getElementById('fotoPreview').src = 'data:image/jpeg;base64,' + fotoBase64;
+      document.getElementById('fotoPreview').style.display = 'block';
+      const kb = Math.round(fotoBase64.length * 0.75 / 1024);
+      document.getElementById('fotoInfo').textContent = `${w}×${h}px · ~${kb} KB`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Scanner ───────────────────────────────────────────
+function toggleScanner() {
+  if (scannerOn) { pararScanner(); return; }
+  document.getElementById('scannerWrap').style.display = 'block';
+  document.getElementById('btnScanner').textContent = '✕ Fechar';
+  scanner = new Html5Qrcode('scanner-preview');
+  scanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 220, height: 120 } },
+    code => {
+      document.getElementById('codigoItem').value = code;
+      const res = document.getElementById('scannerResultado');
+      res.textContent = '✅ Lido: ' + code;
+      res.style.display = 'block';
+      pararScanner();
+    },
+    () => {}
+  ).catch(() => mostrarAlerta('Câmera não disponível para scanner.', 'erro'));
+  scannerOn = true;
+}
+function pararScanner() {
+  if (scanner) scanner.stop().catch(() => {});
+  document.getElementById('scannerWrap').style.display = 'none';
+  document.getElementById('btnScanner').textContent = '📷 Scan';
+  scannerOn = false;
+}
+
+// ── Validação e envio ─────────────────────────────────
+async function enviarRNC() {
+  const dados = {
+    reOperador:        campo('reOperador'),
+    codigoItem:        campo('codigoItem'),
+    origemItem:        campo('origemItem'),
+    setorResponsavel:  campo('setorResponsavel'),
+    qtdLote:           campo('qtdLote'),
+    qtdDesvio:         campo('qtdDesvio'),
+    descricaoDefeito:  campo('descricaoDefeito'),
+  };
+
+  // Validação
+  const obrigatorios = ['reOperador','codigoItem','origemItem','setorResponsavel','qtdLote','qtdDesvio','descricaoDefeito'];
+  for (const f of obrigatorios) {
+    if (!dados[f]) { mostrarAlerta('Preencha todos os campos obrigatórios.', 'erro'); focar(f); return; }
+  }
+  if (!fotoBase64) { mostrarAlerta('Adicione uma foto da evidência.', 'erro'); return; }
+
+  const btn = document.getElementById('btnEnviar');
+  btn.disabled = true;
+  btn.textContent = '⏳ Enviando...';
+  esconderAlerta();
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method:   'POST',
+      redirect: 'follow',
+      headers:  { 'Content-Type': 'text/plain;charset=utf-8' },
+      body:     JSON.stringify({ dados, imagem: fotoBase64 }),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'Erro no servidor');
+
+    mostrarAlerta(`✅ RNC registrada com sucesso! Ticket: ${json.data.ticket}`, 'ok');
+    resetarForm();
+  } catch (e) {
+    mostrarAlerta('❌ Erro ao enviar: ' + (e.message || e), 'erro');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✅ Registrar Não Conformidade';
+  }
+}
+
+function campo(id) { return document.getElementById(id).value.trim(); }
+function focar(id) { document.getElementById(id).focus(); document.getElementById(id).scrollIntoView({behavior:'smooth',block:'center'}); }
+
+function mostrarAlerta(msg, tipo) {
+  const el = document.getElementById('alerta-form');
+  el.className = 'alerta alerta-' + tipo;
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function esconderAlerta() { document.getElementById('alerta-form').style.display = 'none'; }
+
+function resetarForm() {
+  ['reOperador','codigoItem','qtdLote','qtdDesvio','descricaoDefeito'].forEach(id => document.getElementById(id).value = '');
+  ['origemItem','setorResponsavel'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  document.getElementById('fotoInput').value = '';
+  document.getElementById('fotoPreview').style.display = 'none';
+  document.getElementById('fotoInfo').textContent = '';
+  document.getElementById('scannerResultado').style.display = 'none';
+  fotoBase64 = null;
+}
+
+// ════════════════════════════════════════════════════
+// PAINEL
+// ════════════════════════════════════════════════════
+const CORES = ['#1a56a0','#1a7a45','#b45309','#c0392b','#6b21a8','#0e7490','#854d0e','#166534'];
+let charts = {};
+let painelCarregado = false;
+
+async function gasGet(action, params = {}) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set('page', 'api');
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Erro na API');
+  return json.data;
+}
+
+async function iniciarPainel() {
+  painelCarregado = true;
+  try {
+    const meses = await gasGet('meses');
+    const sel   = document.getElementById('filtroMes');
+    meses.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.valor; opt.textContent = m.label;
+      sel.appendChild(opt);
+    });
+    const hoje = new Date();
+    const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+    if (meses.find(m => m.valor === mesAtual)) sel.value = mesAtual;
+  } catch (e) { console.warn('Meses:', e.message); }
+  recarregarPainel();
+}
+
+async function recarregarPainel() {
+  const mes = document.getElementById('filtroMes').value;
+  document.getElementById('painel-loading').style.display = 'block';
+  document.getElementById('painel-conteudo').style.display = 'none';
+  document.getElementById('btnRefresh').disabled = true;
+
+  try {
+    const params = mes ? { mesAno: mes } : {};
+    const dados  = await gasGet('dashboard', params);
+    renderPainel(dados);
+  } catch (e) {
+    document.getElementById('painel-loading').innerHTML =
+      `<div style="color:var(--erro);font-size:13px">⚠ ${e.message}<br><br>
+       <button onclick="recarregarPainel()" style="padding:8px 16px;border:1px solid var(--erro);background:var(--erro-bg);color:var(--erro);border-radius:6px;cursor:pointer">Tentar novamente</button></div>`;
+  } finally {
+    document.getElementById('btnRefresh').disabled = false;
+  }
+}
+
+function renderPainel(dados) {
+  document.getElementById('painel-loading').style.display = 'none';
+  document.getElementById('painel-conteudo').style.display = 'block';
+  document.getElementById('tsAtualizado').textContent = new Date().toLocaleTimeString('pt-BR');
+
+  if (!dados || !dados.length) {
+    document.getElementById('tabela-body').innerHTML = '<tr><td colspan="7" class="vazio">Nenhuma RNC encontrada.</td></tr>';
+    atualizarKPIs([], []); return;
+  }
+  const concluidas = dados.filter(r => r.status === 'Concluído' && r.leadTimeH !== null);
+  atualizarKPIs(dados, concluidas);
+  renderGraficoSetor(dados);
+  renderGraficoDisposicao(dados);
+  renderGraficoLeadTime(concluidas);
+  renderGraficoCausa(dados);
+  renderTabela(dados.slice(0, 30));
+}
+
+function atualizarKPIs(dados, concluidas) {
+  const total   = dados.length;
+  const abertas = dados.filter(r => r.status !== 'Concluído').length;
+  const sucata  = dados.filter(r => r.disposicao === 'Sucata').length;
+  const taxa    = total > 0 ? Math.round(sucata/total*100) : 0;
+  const lead    = concluidas.length > 0 ? Math.round(concluidas.reduce((s,r)=>s+r.leadTimeH,0)/concluidas.length) : null;
+  document.getElementById('kpi-total').textContent   = total;
+  document.getElementById('kpi-abertas').textContent = abertas;
+  document.getElementById('kpi-sucata').textContent  = taxa + '%';
+  document.getElementById('kpi-lead').textContent    = lead !== null ? lead + 'h' : '—';
+}
+
+function agrupar(arr, k) { return arr.reduce((a,i)=>{const v=i[k]||'—';a[v]=(a[v]||0)+1;return a;},{}); }
+function destruir(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+function baseOpts(lY) {
+  return { responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}${lY?' '+lY:''}`}}},
+    scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{grid:{color:'#f0f0f0'},ticks:{font:{size:11}},beginAtZero:true}} };
+}
+
+function renderGraficoSetor(dados) {
+  const c=agrupar(dados,'setor'); const l=Object.keys(c).sort((a,b)=>c[b]-c[a]);
+  destruir('g-setor');
+  charts['g-setor']=new Chart(document.getElementById('g-setor'),{type:'bar',
+    data:{labels:l,datasets:[{label:'RNCs',data:l.map(x=>c[x]),backgroundColor:CORES.slice(0,l.length),borderRadius:4,borderSkipped:false}]},
+    options:baseOpts('')});
+}
+function renderGraficoDisposicao(dados) {
+  const c=agrupar(dados,'disposicao'); const l=Object.keys(c);
+  destruir('g-disposicao');
+  charts['g-disposicao']=new Chart(document.getElementById('g-disposicao'),{type:'doughnut',
+    data:{labels:l,datasets:[{data:l.map(x=>c[x]),backgroundColor:CORES.slice(0,l.length),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}},
+      tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}`}}}}});
+}
+function renderGraficoLeadTime(concluidas) {
+  destruir('g-leadtime');
+  if (!concluidas.length) return;
+  const soma={},cnt={};
+  concluidas.forEach(r=>{soma[r.setor]=(soma[r.setor]||0)+r.leadTimeH;cnt[r.setor]=(cnt[r.setor]||0)+1;});
+  const l=Object.keys(soma).sort((a,b)=>(soma[b]/cnt[b])-(soma[a]/cnt[a]));
+  const m=l.map(x=>Math.round(soma[x]/cnt[x]));
+  charts['g-leadtime']=new Chart(document.getElementById('g-leadtime'),{type:'bar',
+    data:{labels:l,datasets:[{label:'h',data:m,backgroundColor:m.map(v=>v>48?'#c0392b':v>24?'#b45309':'#1a7a45'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw} h`}}},
+      scales:{x:{grid:{color:'#f0f0f0'},ticks:{font:{size:11}},beginAtZero:true},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+}
+function renderGraficoCausa(dados) {
+  const f=dados.filter(d=>d.causaRaiz&&d.causaRaiz!=='—'); const c=agrupar(f,'causaRaiz');
+  const l=Object.keys(c).sort((a,b)=>c[b]-c[a]);
+  destruir('g-causa');
+  charts['g-causa']=new Chart(document.getElementById('g-causa'),{type:'bar',
+    data:{labels:l,datasets:[{label:'Ocorrências',data:l.map(x=>c[x]),backgroundColor:'#6b21a8',borderRadius:4,borderSkipped:false}]},
+    options:baseOpts('')});
+}
+function renderTabela(dados) {
+  const tbody=document.getElementById('tabela-body');
+  if (!dados.length){tbody.innerHTML='<tr><td colspan="7" class="vazio">Sem dados.</td></tr>';return;}
+  tbody.innerHTML=dados.map(r=>{
+    const lead=r.leadTimeH!==null?r.leadTimeH+'h':'<span style="color:#999">Aberto</span>';
+    const pdf=r.urlPdf?`<a href="${r.urlPdf}" target="_blank" style="color:var(--azul);font-weight:600">PDF</a>`:'—';
+    return `<tr>
+      <td><strong>${r.ticket}</strong></td><td>${r.dataCriacao}</td><td>${r.setor}</td>
+      <td>${pillD(r.disposicao)}</td><td>${pillS(r.status)}</td><td>${lead}</td><td>${pdf}</td>
+    </tr>`;
+  }).join('');
+}
+function pillS(s){const m={'Concluído':'pill-concluido','Em Análise':'pill-analise','Aberto':'pill-aberto','Plano de Ação':'pill-analise','Verificação QA':'pill-analise'};return`<span class="pill ${m[s]||'pill-aberto'}">${s}</span>`;}
+function pillD(d){const m={'Sucata':'pill-sucata','Retrabalho':'pill-retrabalho','Concessão':'pill-analise','Devolução':'pill-aberto','Pendente':'pill-aberto'};return`<span class="pill ${m[d]||'pill-aberto'}">${d||'—'}</span>`;}
+</script>
+</body>
+</html>
