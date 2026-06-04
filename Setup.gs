@@ -217,6 +217,119 @@ function _campo(corpo, rotulo, valor) {
 
 
 /**
+ * PASSO 2-B — Cria o campo "Link Pasta Drive SGQ" no Jira e adiciona ao projeto SGQ.
+ *
+ * Execute UMA VEZ após configurarPropriedades().
+ * Após rodar, verifique nos logs o ID retornado.
+ * Se for diferente de "customfield_10135", atualize CONFIG.CF.LINK_PASTA em Code.gs.
+ */
+function criarCampoLinkPasta() {
+  const props = PropertiesService.getScriptProperties();
+  const base  = props.getProperty("JIRA_URL");
+  const email = props.getProperty("JIRA_EMAIL");
+  const token = props.getProperty("JIRA_TOKEN");
+  if (!token || token === "COLE_AQUI_O_NOVO_TOKEN_JIRA") {
+    throw new Error("⛔ Configure as credenciais Jira antes (execute configurarPropriedades()).");
+  }
+  const cred    = Utilities.base64Encode(email + ":" + token);
+  const headers = { Authorization: "Basic " + cred, "Content-Type": "application/json" };
+
+  // ── 1. Verifica se o campo já existe ──────────────────────────────────────
+  const listaResp = UrlFetchApp.fetch(`${base}/field`, {
+    method: "get", headers, muteHttpExceptions: true,
+  });
+  if (listaResp.getResponseCode() !== 200) {
+    throw new Error("Erro ao listar campos: " + listaResp.getContentText().substring(0, 300));
+  }
+  const campos    = JSON.parse(listaResp.getContentText());
+  const existente = campos.find(c => c.name === "Link Pasta Drive SGQ");
+  if (existente) {
+    Logger.log("✅ Campo já existe: " + existente.id);
+    Logger.log("   Atualize CONFIG.CF.LINK_PASTA = \"" + existente.id + "\" em Code.gs se necessário.");
+    _adicionarCampoAoProjeto(existente.id, base, headers);
+    return existente.id;
+  }
+
+  // ── 2. Cria o campo customizado do tipo URL ────────────────────────────────
+  const criarResp = UrlFetchApp.fetch(`${base}/field`, {
+    method: "post",
+    headers,
+    payload: JSON.stringify({
+      name:        "Link Pasta Drive SGQ",
+      description: "URL da pasta do Google Drive com os dossiês do mês desta RNC",
+      type:        "com.atlassian.jira.plugin.system.customfieldtypes:url",
+    }),
+    muteHttpExceptions: true,
+  });
+
+  const statusCriar = criarResp.getResponseCode();
+  const corpoCriar  = JSON.parse(criarResp.getContentText());
+
+  if (statusCriar !== 201 && statusCriar !== 200) {
+    throw new Error("Erro ao criar campo (" + statusCriar + "): " + JSON.stringify(corpoCriar).substring(0, 300));
+  }
+
+  const fieldId = corpoCriar.id;
+  Logger.log("✅ Campo criado: " + fieldId + " · Link Pasta Drive SGQ");
+
+  // ── 3. Tenta adicionar o campo ao projeto SGQ ─────────────────────────────
+  _adicionarCampoAoProjeto(fieldId, base, headers);
+
+  Logger.log("");
+  Logger.log("▶ Se o ID abaixo for diferente de customfield_10135, atualize Code.gs:");
+  Logger.log("   CONFIG.CF.LINK_PASTA = \"" + fieldId + "\"");
+  return fieldId;
+}
+
+/** Tenta adicionar o campo à primeira tela do projeto SGQ via API de telas. */
+function _adicionarCampoAoProjeto(fieldId, base, headers) {
+  try {
+    const telasResp = UrlFetchApp.fetch(`${base}/screens?projectKey=SGQ&maxResults=10`, {
+      method: "get", headers, muteHttpExceptions: true,
+    });
+    if (telasResp.getResponseCode() !== 200) {
+      Logger.log("⚠ Não foi possível listar telas via API. Adicione manualmente:");
+      Logger.log("   SGQ > Configurações > Campos > Adicionar campo > 'Link Pasta Drive SGQ'");
+      return;
+    }
+    const telas = JSON.parse(telasResp.getContentText());
+    const lista  = telas.values || telas || [];
+    if (!lista.length) {
+      Logger.log("⚠ Nenhuma tela encontrada para o projeto SGQ. Adicione manualmente.");
+      return;
+    }
+    const telaId = lista[0].id;
+
+    // Busca a primeira aba da tela
+    const tabsResp = UrlFetchApp.fetch(`${base}/screens/${telaId}/tabs`, {
+      method: "get", headers, muteHttpExceptions: true,
+    });
+    if (tabsResp.getResponseCode() !== 200) return;
+    const tabs  = JSON.parse(tabsResp.getContentText());
+    const tabId = tabs[0] && tabs[0].id;
+    if (!tabId) return;
+
+    const addResp = UrlFetchApp.fetch(`${base}/screens/${telaId}/tabs/${tabId}/fields`, {
+      method: "post",
+      headers,
+      payload: JSON.stringify({ fieldId }),
+      muteHttpExceptions: true,
+    });
+    const st = addResp.getResponseCode();
+    if (st === 200 || st === 201) {
+      Logger.log("✅ Campo adicionado à tela do projeto SGQ.");
+    } else {
+      Logger.log("⚠ API retornou " + st + " ao adicionar campo à tela.");
+      Logger.log("   Adicione manualmente: SGQ > Configurações > Campos > 'Link Pasta Drive SGQ'");
+    }
+  } catch(e) {
+    Logger.log("⚠ Erro ao adicionar campo à tela: " + e.message);
+    Logger.log("   Adicione manualmente: SGQ > Configurações > Campos > 'Link Pasta Drive SGQ'");
+  }
+}
+
+
+/**
  * PASSO 3 — Valida toda a configuração antes do deploy.
  * Verifique os logs (Ctrl+Enter) após executar.
  */
