@@ -6,8 +6,142 @@
 // ORDEM DE EXECUÇÃO:
 //   1. configurarPropriedades()  — define as credenciais Jira
 //   2. criarTemplateRNC()        — cria o Doc template no Drive
-//   3. verificarSetup()          — valida toda a configuração
+//   3. criarCamposV2()           — cria campos de tratativa/SLA
+//   4. verificarSetup()          — valida toda a configuração
 // ============================================================
+
+
+/**
+ * PASSO 2-C — Cria os novos campos Jira para tratativa, SLA e processo.
+ *
+ * Execute UMA VEZ após configurarPropriedades().
+ * Os IDs são salvos automaticamente no PropertiesService e
+ * lidos em Code.gs via PropertiesService.getScriptProperties().
+ *
+ * Campos criados:
+ *   CF_CONTENCAO      — Ação de Contenção SGQ        (textarea)
+ *   CF_ACAO_CORRET    — Ação Corretiva SGQ            (textarea)
+ *   CF_MOTIVO_DEVOL   — Motivo Devolução SGQ          (textarea)
+ *   CF_RESP_NOME      — Responsável Tratativa SGQ     (textfield)
+ *   CF_RESP_EMAIL     — Email Responsável Tratativa   (textfield)
+ *   CF_HORAS_RETRAB   — Horas de Retrabalho SGQ       (float)
+ *   CF_CUSTO_SUCATA   — Custo Sucateado SGQ (R$)      (float)
+ *   CF_PRIORIDADE_RNC — Prioridade RNC SGQ            (select: Padrão/Emergência)
+ *   CF_PROCESSO       — Processo Inspecionado SGQ     (select: Dobra/Usinagem/...)
+ *   CF_NUM_SERIE      — Número de Série SGQ           (textfield)
+ */
+function criarCamposV2() {
+  const props   = PropertiesService.getScriptProperties();
+  const base    = props.getProperty("JIRA_URL");
+  const email   = props.getProperty("JIRA_EMAIL");
+  const token   = props.getProperty("JIRA_TOKEN");
+  if (!token || token === "COLE_AQUI_O_NOVO_TOKEN_JIRA") {
+    throw new Error("⛔ Configure as credenciais Jira antes.");
+  }
+  const cred    = Utilities.base64Encode(email + ":" + token);
+  const headers = { Authorization: "Basic " + cred, "Content-Type": "application/json" };
+
+  // ── Definição dos campos ──────────────────────────────────────────────
+  const CAMPOS = [
+    { chave: "CF_CONTENCAO",     nome: "Ação de Contenção SGQ",         tipo: "com.atlassian.jira.plugin.system.customfieldtypes:textarea" },
+    { chave: "CF_ACAO_CORRET",   nome: "Ação Corretiva SGQ",            tipo: "com.atlassian.jira.plugin.system.customfieldtypes:textarea" },
+    { chave: "CF_MOTIVO_DEVOL",  nome: "Motivo Devolução SGQ",          tipo: "com.atlassian.jira.plugin.system.customfieldtypes:textarea" },
+    { chave: "CF_RESP_NOME",     nome: "Responsável Tratativa SGQ",     tipo: "com.atlassian.jira.plugin.system.customfieldtypes:textfield" },
+    { chave: "CF_RESP_EMAIL",    nome: "Email Responsável Tratativa",   tipo: "com.atlassian.jira.plugin.system.customfieldtypes:textfield" },
+    { chave: "CF_NUM_SERIE",     nome: "Número de Série SGQ",           tipo: "com.atlassian.jira.plugin.system.customfieldtypes:textfield" },
+    { chave: "CF_HORAS_RETRAB",  nome: "Horas de Retrabalho SGQ",       tipo: "com.atlassian.jira.plugin.system.customfieldtypes:float" },
+    { chave: "CF_CUSTO_SUCATA",  nome: "Custo Sucateado SGQ (R$)",      tipo: "com.atlassian.jira.plugin.system.customfieldtypes:float" },
+    { chave: "CF_PRIORIDADE_RNC",nome: "Prioridade RNC SGQ",            tipo: "com.atlassian.jira.plugin.system.customfieldtypes:select",
+      opcoes: ["Padrão", "Emergência"] },
+    { chave: "CF_PROCESSO",      nome: "Processo Inspecionado SGQ",     tipo: "com.atlassian.jira.plugin.system.customfieldtypes:select",
+      opcoes: ["Dobra", "Usinagem", "Soldagem", "Montagem / Teste Final", "Pintura", "Recebimento Externo", "Campo / Pós-Venda"] },
+  ];
+
+  // ── Busca campos já existentes para evitar duplicação ────────────────
+  const listaResp = UrlFetchApp.fetch(`${base}/field`, { method: "get", headers, muteHttpExceptions: true });
+  if (listaResp.getResponseCode() !== 200) throw new Error("Erro ao listar campos: " + listaResp.getResponseCode());
+  const existentes = JSON.parse(listaResp.getContentText());
+
+  const ids = {};
+  Logger.log("=== criarCamposV2 — iniciando ===\n");
+
+  for (const campo of CAMPOS) {
+    Utilities.sleep(250); // rate limit
+
+    const jaExiste = existentes.find(c => c.name === campo.nome);
+    if (jaExiste) {
+      ids[campo.chave] = jaExiste.id;
+      Logger.log(`✓ Já existe: "${campo.nome}" → ${jaExiste.id}`);
+      if (campo.opcoes) _garantirOpcoes(jaExiste.id, campo.opcoes, base, headers);
+      _adicionarCampoAoProjeto(jaExiste.id, base, headers);
+      continue;
+    }
+
+    // Cria o campo
+    const cr = UrlFetchApp.fetch(`${base}/field`, {
+      method: "post", headers,
+      payload: JSON.stringify({ name: campo.nome, type: campo.tipo }),
+      muteHttpExceptions: true,
+    });
+    const st = cr.getResponseCode();
+    const bd = JSON.parse(cr.getContentText());
+
+    if (st !== 200 && st !== 201) {
+      Logger.log(`✗ Erro ao criar "${campo.nome}": ${st} — ${JSON.stringify(bd).substring(0, 200)}`);
+      continue;
+    }
+
+    const fieldId = bd.id;
+    ids[campo.chave] = fieldId;
+    Logger.log(`✅ Criado: "${campo.nome}" → ${fieldId}`);
+
+    if (campo.opcoes) {
+      Utilities.sleep(500);
+      _garantirOpcoes(fieldId, campo.opcoes, base, headers);
+    }
+    _adicionarCampoAoProjeto(fieldId, base, headers);
+  }
+
+  // ── Salva IDs no PropertiesService ──────────────────────────────────
+  if (Object.keys(ids).length) {
+    props.setProperties(ids);
+    Logger.log("\n✅ IDs salvos no PropertiesService.");
+  }
+
+  Logger.log("\n=== RESUMO — copie para Code.gs CONFIG.CF ===");
+  Object.entries(ids).forEach(([k, v]) => Logger.log(`  ${k}: "${v}",`));
+  Logger.log("=============================================");
+}
+
+/** Garante que as opções existam no campo select (não duplica se já existirem). */
+function _garantirOpcoes(fieldId, opcoes, base, headers) {
+  // Busca o contexto
+  const ctxR = UrlFetchApp.fetch(`${base}/field/${fieldId}/context`, { method: "get", headers, muteHttpExceptions: true });
+  if (ctxR.getResponseCode() !== 200) { Logger.log(`  ⚠ Sem contexto para ${fieldId}`); return; }
+  const ctx = JSON.parse(ctxR.getContentText());
+  const ctxId = ctx.values && ctx.values[0] && ctx.values[0].id;
+  if (!ctxId) { Logger.log(`  ⚠ Contexto vazio para ${fieldId}`); return; }
+
+  // Busca opções já existentes
+  const opR = UrlFetchApp.fetch(`${base}/field/${fieldId}/context/${ctxId}/option`, { method: "get", headers, muteHttpExceptions: true });
+  const existOpts = opR.getResponseCode() === 200
+    ? JSON.parse(opR.getContentText()).values.map(o => o.value)
+    : [];
+
+  const novas = opcoes.filter(o => !existOpts.includes(o));
+  if (!novas.length) { Logger.log(`  ✓ Opções já existem em ${fieldId}`); return; }
+
+  const addR = UrlFetchApp.fetch(`${base}/field/${fieldId}/context/${ctxId}/option`, {
+    method: "post", headers,
+    payload: JSON.stringify({ options: novas.map(o => ({ value: o })) }),
+    muteHttpExceptions: true,
+  });
+  if (addR.getResponseCode() === 200 || addR.getResponseCode() === 201) {
+    Logger.log(`  ✅ Opções adicionadas a ${fieldId}: ${novas.join(", ")}`);
+  } else {
+    Logger.log(`  ⚠ Erro opções ${fieldId}: ${addR.getResponseCode()} — ${addR.getContentText().substring(0, 150)}`);
+  }
+}
 
 
 /**

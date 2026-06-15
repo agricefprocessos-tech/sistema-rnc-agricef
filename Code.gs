@@ -28,6 +28,7 @@ const CONFIG = {
   JIRA_ISSUE_TYPE: "10074",                  // ID do Issue Type padrão do projeto SGQ (Business project)
   // Mapa de Custom Fields — IDs recriados para projeto SGQ em 03/06/2026
   CF: {
+    // ── Campos v1 (abertura) ──────────────────────────────────────
     ORIGEM:       "customfield_10127",  // Origem do Item SGQ
     QTD_LOTE:     "customfield_10129",  // Qtd Lote SGQ
     QTD_DESVIO:   "customfield_10130",  // Qtd Desvio SGQ
@@ -36,7 +37,29 @@ const CONFIG = {
     LINK_PDF:     "customfield_10132",  // Link PDF SGQ
     CAUSA_RAIZ:   "customfield_10133",  // Causa Raiz SGQ
     DISPOSICAO:   "customfield_10134",  // Disposicao Peca SGQ
-    LINK_PASTA:   "customfield_10167",  // Link Pasta Drive SGQ — criado em 04/06/2026
+    LINK_PASTA:   "customfield_10167",  // Link Pasta Drive SGQ
+    // ── Campos v2 (abertura expandida) ───────────────────────────
+    PRIORIDADE:   "customfield_10241",  // Prioridade RNC SGQ (Padrão / Emergência)
+    PROCESSO:     "customfield_10242",  // Processo Inspecionado SGQ
+    NUM_SERIE:    "customfield_10238",  // Número de Série SGQ
+    // ── Campos v2 (tratativa — fase 2) ───────────────────────────
+    CONTENCAO:    "customfield_10233",  // Ação de Contenção SGQ
+    ACAO_CORRET:  "customfield_10234",  // Ação Corretiva SGQ
+    RESP_NOME:    "customfield_10236",  // Responsável Tratativa SGQ
+    RESP_EMAIL:   "customfield_10237",  // Email Responsável Tratativa
+    HORAS_RETRAB: "customfield_10239",  // Horas de Retrabalho SGQ
+    CUSTO_SUCATA: "customfield_10240",  // Custo Sucateado SGQ (R$)
+    // ── Campos v2 (verificação — fase 3) ─────────────────────────
+    MOTIVO_DEVOL: "customfield_10235",  // Motivo Devolução SGQ
+  },
+
+  // Status IDs do projeto SGQ (Jira Business)
+  STATUS: {
+    ABERTO:        { id: "10107", transicao: "21" },
+    EM_ANALISE:    { id: "10108", transicao: "31" },
+    PLANO_ACAO:    { id: "10142", transicao: null }, // descoberto dinamicamente
+    VERIFICACAO_QA:{ id: "10143", transicao: null }, // descoberto dinamicamente
+    CONCLUIDO:     { id: "10109", transicao: "41" },
   },
   // Lista de REs autorizados. Em produção, mover para uma aba "Config" de uma planilha
   // para permitir adição/remoção sem alterar código.
@@ -103,13 +126,30 @@ function doGet(e) {
 }
 
 /**
- * Recebe o formulário RNC enviado pelo app GitHub Pages via fetch POST.
+ * Recebe ações do app GitHub Pages via fetch POST.
  * Content-Type: text/plain (evita preflight CORS).
+ *
+ * Ações suportadas:
+ *   (sem action / action="criarRNC")  → processarRNC()
+ *   action="salvarTratativa"          → salvarTratativa()
+ *   action="verificarRNC"             → verificarRNC()
  */
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
-    const result  = processarRNC(payload.dados, payload.imagem);
+    let result;
+
+    switch (payload.action) {
+      case "salvarTratativa":
+        result = salvarTratativa(payload.ticket, payload.dados, payload.fase);
+        break;
+      case "verificarRNC":
+        result = verificarRNC(payload.ticket, payload.aprovado, payload.motivo, payload.responsavel);
+        break;
+      default: // "criarRNC" ou legado sem action
+        result = processarRNC(payload.dados, payload.imagem);
+    }
+
     return ContentService.createTextOutput(JSON.stringify({ ok: true, data: result }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
@@ -131,6 +171,14 @@ function _handleApiRequest(e) {
     let resultado;
     if (action === "meses") {
       resultado = buscarMesesDisponiveis();
+    } else if (action === "rncsAbertas") {
+      resultado = buscarRNCsAbertas();
+    } else if (action === "rnc") {
+      const ticket = params.ticket ? params.ticket[0] : null;
+      if (!ticket) throw new Error("Parâmetro 'ticket' obrigatório.");
+      resultado = buscarDadosRNC(ticket);
+    } else if (action === "rncsVerificacao") {
+      resultado = buscarRNCsVerificacao();
     } else {
       // default: dashboard
       const filtros = mesAno ? { mesAno } : null;
@@ -236,11 +284,7 @@ function processarRNC(dados, base64Imagem) {
  * @returns {Array} Lista de RNCs consolidadas
  */
 function buscarDadosDashboard(filtros) {
-  const props  = PropertiesService.getScriptProperties();
-  const base   = props.getProperty("JIRA_URL");
-  const email  = props.getProperty("JIRA_EMAIL");
-  const token  = props.getProperty("JIRA_TOKEN");
-  const cred   = Utilities.base64Encode(email + ":" + token);
+  const { base, cred } = _jiraAuth();
 
   // Monta JQL com filtro de período se fornecido
   let jql = `project = ${CONFIG.JIRA_PROJECT} ORDER BY created DESC`;
@@ -323,11 +367,7 @@ function buscarDadosDashboard(filtros) {
  * Retorna os meses disponíveis (com RNCs) para popular o seletor de período no painel.
  */
 function buscarMesesDisponiveis() {
-  const props = PropertiesService.getScriptProperties();
-  const base  = props.getProperty("JIRA_URL");
-  const email = props.getProperty("JIRA_EMAIL");
-  const token = props.getProperty("JIRA_TOKEN");
-  const cred  = Utilities.base64Encode(email + ":" + token);
+  const { base, cred } = _jiraAuth();
 
   const jql = `project = ${CONFIG.JIRA_PROJECT} ORDER BY created ASC`;
   const url  = `${base}/search/jql?jql=${encodeURIComponent(jql)}&maxResults=1&fields=created`;
@@ -459,11 +499,7 @@ function _gerarPdf(dados, blobImagem, pasta, ticketKey) {
  * Retorna a chave do ticket criado (ex: "RNC-42").
  */
 function _enviarParaJira(dados, urlPdf, urlImagem, urlPasta) {
-  const props = PropertiesService.getScriptProperties();
-  const base  = props.getProperty("JIRA_URL");
-  const email = props.getProperty("JIRA_EMAIL");
-  const token = props.getProperty("JIRA_TOKEN");
-  const cred  = Utilities.base64Encode(email + ":" + token);
+  const { base, cred } = _jiraAuth();
 
   // Descrição ADF
   const adfContent = [
@@ -505,6 +541,10 @@ function _enviarParaJira(dados, urlPdf, urlImagem, urlPasta) {
     [CONFIG.CF.SETOR]:     { value: dados.setorResponsavel },
     description: { version: 1, type: "doc", content: adfContent },
   };
+  // Campos v2 opcionais (podem ser null/undefined se não enviados)
+  if (dados.prioridade)    fields[CONFIG.CF.PRIORIDADE] = { value: dados.prioridade };
+  if (dados.processo)      fields[CONFIG.CF.PROCESSO]   = { value: dados.processo };
+  if (dados.numSerie)      fields[CONFIG.CF.NUM_SERIE]  = dados.numSerie;
   // Só adiciona campos URL se preenchidos (evita erro de campo URL vazio no Jira)
   if (urlPdf)   fields[CONFIG.CF.LINK_PDF]   = urlPdf;
   if (urlPasta) fields[CONFIG.CF.LINK_PASTA] = urlPasta;
@@ -532,11 +572,7 @@ function _enviarParaJira(dados, urlPdf, urlImagem, urlPasta) {
  * Atualiza o campo Link do Dossiê PDF no ticket Jira após o PDF ser gerado.
  */
 function _atualizarLinkPdfJira(ticketKey, urlPdf) {
-  const props = PropertiesService.getScriptProperties();
-  const base  = props.getProperty("JIRA_URL");
-  const email = props.getProperty("JIRA_EMAIL");
-  const token = props.getProperty("JIRA_TOKEN");
-  const cred  = Utilities.base64Encode(email + ":" + token);
+  const { base, cred } = _jiraAuth();
 
   const payload = { fields: { [CONFIG.CF.LINK_PDF]: urlPdf } };
 
@@ -597,6 +633,292 @@ function _registrarFalhaContingencia(dados, mensagemErro) {
   } catch (e) {
     Logger.log("FALHA ao gravar na planilha de contingência: " + e.toString());
   }
+}
+
+
+// ── Endpoints de Tratativa e Verificação (Fase 2 e 3) ────────────────────────
+
+/**
+ * Lista RNCs abertas/em tratativa para a aba Tratativa do app.
+ * Retorna flag `trativadaPreenchida` para o indicador ⏳/✅.
+ */
+function buscarRNCsAbertas() {
+  const { base, cred } = _jiraAuth();
+  const jql = `project = ${CONFIG.JIRA_PROJECT} AND status in ("Aberto","Em Análise","Plano de Ação") ORDER BY created DESC`;
+  const fields = [
+    "key", "summary", "status", "created", "priority",
+    CONFIG.CF.SETOR, CONFIG.CF.COD_ITEM, CONFIG.CF.PRIORIDADE,
+    CONFIG.CF.CONTENCAO, CONFIG.CF.ACAO_CORRET,
+  ].join(",");
+
+  const url = `${base}/search/jql?jql=${encodeURIComponent(jql)}&maxResults=50&fields=${encodeURIComponent(fields)}`;
+  const res  = UrlFetchApp.fetch(url, { method: "get", headers: { Authorization: "Basic " + cred }, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error("Jira API " + res.getResponseCode());
+
+  const json = JSON.parse(res.getContentText());
+  return json.issues.map(issue => {
+    const f = issue.fields;
+    const contencao   = f[CONFIG.CF.CONTENCAO]   || null;
+    const acaoCorret  = f[CONFIG.CF.ACAO_CORRET]  || null;
+    const prioridade  = f[CONFIG.CF.PRIORIDADE]   ? f[CONFIG.CF.PRIORIDADE].value : "Padrão";
+    return {
+      ticket:               issue.key,
+      resumo:               f.summary,
+      status:               f.status ? f.status.name : "—",
+      setor:                f[CONFIG.CF.SETOR]    ? f[CONFIG.CF.SETOR].value    : "—",
+      codigoItem:           f[CONFIG.CF.COD_ITEM] || "—",
+      prioridade,
+      dataCriacao:          f.created ? f.created.substring(0, 10) : "—",
+      trativadaPreenchida:  !!(contencao && acaoCorret),
+    };
+  });
+}
+
+/**
+ * Retorna todos os dados de uma RNC específica para pré-preencher o formulário de tratativa.
+ */
+function buscarDadosRNC(ticket) {
+  const { base, cred } = _jiraAuth();
+  const fields = [
+    "summary", "description", "status", "created", "priority",
+    CONFIG.CF.SETOR, CONFIG.CF.ORIGEM, CONFIG.CF.COD_ITEM,
+    CONFIG.CF.QTD_LOTE, CONFIG.CF.QTD_DESVIO, CONFIG.CF.PRIORIDADE,
+    CONFIG.CF.PROCESSO, CONFIG.CF.NUM_SERIE, CONFIG.CF.LINK_PDF, CONFIG.CF.LINK_PASTA,
+    CONFIG.CF.CONTENCAO, CONFIG.CF.CAUSA_RAIZ, CONFIG.CF.ACAO_CORRET,
+    CONFIG.CF.DISPOSICAO, CONFIG.CF.HORAS_RETRAB, CONFIG.CF.CUSTO_SUCATA,
+    CONFIG.CF.RESP_NOME, CONFIG.CF.RESP_EMAIL, CONFIG.CF.MOTIVO_DEVOL,
+  ].join(",");
+
+  const res = UrlFetchApp.fetch(`${base}/issue/${ticket}?fields=${encodeURIComponent(fields)}`, {
+    method: "get", headers: { Authorization: "Basic " + cred }, muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() === 404) throw new Error("Ticket " + ticket + " não encontrado.");
+  if (res.getResponseCode() !== 200) throw new Error("Jira API " + res.getResponseCode());
+
+  const { fields: f, key } = JSON.parse(res.getContentText());
+
+  // Extrai texto da descrição ADF
+  let descricaoTexto = "";
+  try {
+    const doc = f.description;
+    if (doc && doc.content) {
+      descricaoTexto = doc.content
+        .flatMap(b => b.content || [])
+        .filter(n => n.type === "text")
+        .map(n => n.text)
+        .join(" ");
+    }
+  } catch(e) {}
+
+  return {
+    ticket:        key,
+    resumo:        f.summary,
+    status:        f.status ? f.status.name : "—",
+    dataCriacao:   f.created ? f.created.substring(0, 10) : "—",
+    setor:         f[CONFIG.CF.SETOR]      ? f[CONFIG.CF.SETOR].value      : "—",
+    origem:        f[CONFIG.CF.ORIGEM]     ? f[CONFIG.CF.ORIGEM].value     : "—",
+    codigoItem:    f[CONFIG.CF.COD_ITEM]   || "—",
+    qtdLote:       f[CONFIG.CF.QTD_LOTE]   || 0,
+    qtdDesvio:     f[CONFIG.CF.QTD_DESVIO] || 0,
+    prioridade:    f[CONFIG.CF.PRIORIDADE] ? f[CONFIG.CF.PRIORIDADE].value : "Padrão",
+    processo:      f[CONFIG.CF.PROCESSO]   ? f[CONFIG.CF.PROCESSO].value   : "—",
+    numSerie:      f[CONFIG.CF.NUM_SERIE]  || "",
+    descricao:     descricaoTexto,
+    urlPdf:        f[CONFIG.CF.LINK_PDF]   || null,
+    urlPasta:      f[CONFIG.CF.LINK_PASTA] || null,
+    // Tratativa (fase 2)
+    contencao:     f[CONFIG.CF.CONTENCAO]    || "",
+    causaRaiz:     f[CONFIG.CF.CAUSA_RAIZ]   ? f[CONFIG.CF.CAUSA_RAIZ].value   : "",
+    acaoCorretiva: f[CONFIG.CF.ACAO_CORRET]  || "",
+    disposicao:    f[CONFIG.CF.DISPOSICAO]   ? f[CONFIG.CF.DISPOSICAO].value   : "",
+    horasRetr:     f[CONFIG.CF.HORAS_RETRAB] || null,
+    custoSucata:   f[CONFIG.CF.CUSTO_SUCATA] || null,
+    respNome:      f[CONFIG.CF.RESP_NOME]    || "",
+    respEmail:     f[CONFIG.CF.RESP_EMAIL]   || "",
+    motivoDev:     f[CONFIG.CF.MOTIVO_DEVOL] || "",
+  };
+}
+
+/**
+ * Salva a tratativa (contenção + ação corretiva) e transiciona o status.
+ * fase = "rascunho" → Em Análise
+ * fase = "envio"    → Plano de Ação (aguarda verificação QA)
+ */
+function salvarTratativa(ticket, dados, fase) {
+  const { base, cred } = _jiraAuth();
+  const headers = { Authorization: "Basic " + cred };
+
+  // Monta os campos a atualizar
+  const fields = {};
+  if (dados.contencao)    fields[CONFIG.CF.CONTENCAO]    = dados.contencao;
+  if (dados.causaRaiz)    fields[CONFIG.CF.CAUSA_RAIZ]   = { value: dados.causaRaiz };
+  if (dados.acaoCorretiva)fields[CONFIG.CF.ACAO_CORRET]  = dados.acaoCorretiva;
+  if (dados.disposicao)   fields[CONFIG.CF.DISPOSICAO]   = { value: dados.disposicao };
+  if (dados.horasRetr)    fields[CONFIG.CF.HORAS_RETRAB] = parseFloat(dados.horasRetr);
+  if (dados.custoSucata)  fields[CONFIG.CF.CUSTO_SUCATA] = parseFloat(dados.custoSucata);
+  if (dados.respNome)     fields[CONFIG.CF.RESP_NOME]    = dados.respNome;
+  if (dados.respEmail)    fields[CONFIG.CF.RESP_EMAIL]   = dados.respEmail;
+
+  // PUT campos
+  const putRes = UrlFetchApp.fetch(`${base}/issue/${ticket}`, {
+    method: "put", contentType: "application/json",
+    headers, payload: JSON.stringify({ fields }),
+    muteHttpExceptions: true,
+  });
+  if (putRes.getResponseCode() !== 204 && putRes.getResponseCode() !== 200) {
+    throw new Error("Erro ao salvar tratativa: " + putRes.getResponseCode() + " " + putRes.getContentText().substring(0, 200));
+  }
+
+  // Transiciona status
+  const novoStatus = fase === "envio" ? "Plano de Ação" : "Em Análise";
+  _transicionarStatus(ticket, novoStatus, base, headers);
+
+  // Se for envio final, notifica QA
+  if (fase === "envio") {
+    try { _notificarTratativaEnviada(ticket, dados); } catch(e) {
+      Logger.log("⚠ Notificação tratativa falhou: " + e.message);
+    }
+  }
+
+  return { sucesso: true, ticket, status: novoStatus };
+}
+
+/**
+ * Lista RNCs em "Plano de Ação" para a aba Verificação QA.
+ */
+function buscarRNCsVerificacao() {
+  const { base, cred } = _jiraAuth();
+  const jql = `project = ${CONFIG.JIRA_PROJECT} AND status = "Plano de Ação" ORDER BY created ASC`;
+  const fields = [
+    "key", "summary", "status", "created",
+    CONFIG.CF.SETOR, CONFIG.CF.COD_ITEM, CONFIG.CF.PRIORIDADE,
+    CONFIG.CF.CONTENCAO, CONFIG.CF.ACAO_CORRET, CONFIG.CF.RESP_NOME,
+  ].join(",");
+
+  const url = `${base}/search/jql?jql=${encodeURIComponent(jql)}&maxResults=50&fields=${encodeURIComponent(fields)}`;
+  const res  = UrlFetchApp.fetch(url, { method: "get", headers: { Authorization: "Basic " + cred }, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error("Jira API " + res.getResponseCode());
+
+  const json = JSON.parse(res.getContentText());
+  return json.issues.map(issue => {
+    const f = issue.fields;
+    return {
+      ticket:      issue.key,
+      resumo:      f.summary,
+      setor:       f[CONFIG.CF.SETOR]    ? f[CONFIG.CF.SETOR].value    : "—",
+      codigoItem:  f[CONFIG.CF.COD_ITEM] || "—",
+      prioridade:  f[CONFIG.CF.PRIORIDADE] ? f[CONFIG.CF.PRIORIDADE].value : "Padrão",
+      dataCriacao: f.created ? f.created.substring(0, 10) : "—",
+      respNome:    f[CONFIG.CF.RESP_NOME] || "—",
+    };
+  });
+}
+
+/**
+ * Aprova ou devolve uma RNC após verificação da equipe de Qualidade.
+ * aprovado = true  → Concluído
+ * aprovado = false → Aberto (com motivo de devolução)
+ */
+function verificarRNC(ticket, aprovado, motivo, responsavel) {
+  const { base, cred } = _jiraAuth();
+  const headers = { Authorization: "Basic " + cred };
+
+  if (aprovado) {
+    _transicionarStatus(ticket, "Concluído", base, headers);
+    try { _notificarVerificacao(ticket, true, motivo, responsavel); } catch(e) {}
+    return { sucesso: true, ticket, acao: "aprovado" };
+  } else {
+    if (!motivo) throw new Error("Motivo de devolução obrigatório.");
+    // Salva motivo e volta para Aberto
+    UrlFetchApp.fetch(`${base}/issue/${ticket}`, {
+      method: "put", contentType: "application/json",
+      headers, payload: JSON.stringify({ fields: { [CONFIG.CF.MOTIVO_DEVOL]: motivo } }),
+      muteHttpExceptions: true,
+    });
+    _transicionarStatus(ticket, "Aberto", base, headers);
+    try { _notificarVerificacao(ticket, false, motivo, responsavel); } catch(e) {}
+    return { sucesso: true, ticket, acao: "devolvido" };
+  }
+}
+
+/**
+ * Transiciona o status de um ticket buscando a transição pelo nome.
+ * Em projetos Jira Business, todas as transições costumam estar disponíveis.
+ */
+function _transicionarStatus(ticket, nomeStatus, base, headers) {
+  const tRes = UrlFetchApp.fetch(`${base}/issue/${ticket}/transitions`, {
+    method: "get", headers, muteHttpExceptions: true,
+  });
+  if (tRes.getResponseCode() !== 200) {
+    Logger.log("⚠ Não foi possível buscar transições de " + ticket);
+    return;
+  }
+  const transitions = JSON.parse(tRes.getContentText()).transitions || [];
+  const t = transitions.find(tr => tr.to && tr.to.name === nomeStatus);
+  if (!t) {
+    Logger.log("⚠ Transição '" + nomeStatus + "' não encontrada para " + ticket +
+      ". Disponíveis: " + transitions.map(x => x.to.name).join(", "));
+    return;
+  }
+  UrlFetchApp.fetch(`${base}/issue/${ticket}/transitions`, {
+    method: "post", contentType: "application/json",
+    headers, payload: JSON.stringify({ transition: { id: t.id } }),
+    muteHttpExceptions: true,
+  });
+  Logger.log("✅ " + ticket + " → " + nomeStatus);
+}
+
+/** Extrai credenciais Jira do PropertiesService e retorna { base, cred }. */
+function _jiraAuth() {
+  const props = PropertiesService.getScriptProperties();
+  const base  = props.getProperty("JIRA_URL");
+  const email = props.getProperty("JIRA_EMAIL");
+  const token = props.getProperty("JIRA_TOKEN");
+  return { base, cred: Utilities.base64Encode(email + ":" + token) };
+}
+
+/** E-mail para QA quando líder envia a tratativa. */
+function _notificarTratativaEnviada(ticket, dados) {
+  const jiraUrl = `https://agricef-qualidade.atlassian.net/browse/${ticket}`;
+  const dest    = CONFIG.EMAILS_NOTIFICACAO.filter(e => !!e).join(",");
+  if (!dest) return;
+  GmailApp.sendEmail(dest,
+    `[Tratativa Enviada] ${ticket} aguarda Verificação QA`,
+    `O líder ${dados.respNome || "—"} enviou a tratativa do ticket ${ticket}.\n\nJira: ${jiraUrl}`,
+    {
+      name: "Sistema RNC Agricef",
+      htmlBody: `<p>O responsável <strong>${dados.respNome || "—"}</strong> (${dados.respEmail || "—"}) preencheu a tratativa do ticket <a href="${jiraUrl}"><strong>${ticket}</strong></a> e enviou para Verificação QA.</p>
+      <p><strong>Contenção:</strong> ${(dados.contencao || "—").substring(0, 200)}</p>
+      <p><strong>Ação Corretiva:</strong> ${(dados.acaoCorretiva || "—").substring(0, 200)}</p>
+      <p><a href="${jiraUrl}" style="background:#1a56a0;color:#fff;padding:10px 18px;border-radius:5px;text-decoration:none;font-weight:bold">🔍 Verificar no Jira</a></p>`,
+    }
+  );
+}
+
+/** E-mail de resultado da verificação QA (aprovado ou devolvido). */
+function _notificarVerificacao(ticket, aprovado, motivo, responsavel) {
+  const jiraUrl   = `https://agricef-qualidade.atlassian.net/browse/${ticket}`;
+  // Busca e-mail do responsável pela tratativa
+  const dadosRnc  = buscarDadosRNC(ticket);
+  const destLider = dadosRnc.respEmail || "";
+  const destQA    = CONFIG.EMAILS_NOTIFICACAO.filter(e => !!e).join(",");
+  const todos     = [...new Set([destLider, destQA].filter(e => !!e))].join(",");
+  if (!todos) return;
+
+  const assunto = aprovado
+    ? `[RNC Concluída] ${ticket} aprovada pela Qualidade ✅`
+    : `[RNC Devolvida] ${ticket} devolvida para revisão ⚠`;
+
+  const corpo = aprovado
+    ? `<p>A RNC <a href="${jiraUrl}"><strong>${ticket}</strong></a> foi <strong style="color:#1a7a45">aprovada e concluída</strong> pela equipe de Qualidade.</p><p>Verificado por: ${responsavel || "Qualidade"}</p>`
+    : `<p>A RNC <a href="${jiraUrl}"><strong>${ticket}</strong></a> foi <strong style="color:#c0392b">devolvida para revisão</strong>.</p>
+       <p><strong>Motivo:</strong> ${motivo}</p>
+       <p>Por favor, acesse o app e revise a tratativa.</p>`;
+
+  GmailApp.sendEmail(todos, assunto,
+    aprovado ? `RNC ${ticket} aprovada.` : `RNC ${ticket} devolvida. Motivo: ${motivo}`,
+    { name: "Sistema RNC Agricef", htmlBody: corpo }
+  );
 }
 
 

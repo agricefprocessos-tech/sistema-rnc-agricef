@@ -11,15 +11,17 @@
     :root {
       --azul:#1a56a0; --azul-bg:#e8f0fb; --verde:#1a7a45; --verde-bg:#e6f4ec;
       --laranja:#b45309; --laranja-bg:#fef3c7; --erro:#c0392b; --erro-bg:#fdecea;
+      --roxo:#6b21a8; --roxo-bg:#f5e6ff;
       --borda:#d0d5dd; --texto:#1a1a1a; --muted:#666; --bg:#f0f2f5; --card:#fff; --radius:10px;
     }
     body { background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--texto); min-height:100vh; }
 
     /* ── NAV ── */
-    .nav { background:var(--azul); padding:0 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,.2); }
-    .nav-brand { color:#fff; font-size:15px; font-weight:700; padding:14px 0; display:flex; align-items:center; gap:8px; }
-    .nav-tabs { display:flex; gap:4px; }
-    .nav-tab { padding:12px 18px; color:rgba(255,255,255,.75); font-size:14px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; transition:.15s; background:none; border-top:none; border-left:none; border-right:none; }
+    .nav { background:var(--azul); padding:0 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,.2); flex-wrap:wrap; gap:0; }
+    .nav-brand { color:#fff; font-size:15px; font-weight:700; padding:14px 0; display:flex; align-items:center; gap:8px; white-space:nowrap; }
+    .nav-tabs { display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    .nav-tabs::-webkit-scrollbar { display:none; }
+    .nav-tab { padding:12px 14px; color:rgba(255,255,255,.75); font-size:13px; font-weight:600; cursor:pointer; border-bottom:3px solid transparent; transition:.15s; background:none; border-top:none; border-left:none; border-right:none; white-space:nowrap; }
     .nav-tab:hover { color:#fff; }
     .nav-tab.ativo { color:#fff; border-bottom-color:#fff; }
 
@@ -29,7 +31,7 @@
 
     /* ── CARDS ── */
     .card { background:var(--card); border-radius:var(--radius); box-shadow:0 1px 4px rgba(0,0,0,.07); padding:20px; margin-bottom:16px; }
-    .card-titulo { font-size:15px; font-weight:700; color:var(--azul); margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--borda); }
+    .card-titulo { font-size:15px; font-weight:700; color:var(--azul); margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--borda); display:flex; align-items:center; gap:8px; }
 
     /* ── FORMULÁRIO ── */
     .form-group { margin-bottom:14px; }
@@ -41,17 +43,33 @@
     input:focus, select:focus, textarea:focus { outline:none; border-color:var(--azul); box-shadow:0 0 0 3px rgba(26,86,160,.1); }
     textarea { min-height:90px; resize:vertical; }
     .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    @media(max-width:480px){ .form-row { grid-template-columns:1fr; } }
+    @media(max-width:520px){ .form-row { grid-template-columns:1fr; } }
+    .campo-obrigatorio { color:var(--erro); margin-left:2px; }
+
+    /* ── PRIORIDADE RADIO ── */
+    .radio-group { display:flex; gap:10px; }
+    .radio-btn { flex:1; display:flex; align-items:center; gap:8px; padding:10px 14px; border:2px solid var(--borda); border-radius:8px; cursor:pointer; transition:.15s; font-size:14px; font-weight:600; user-select:none; }
+    .radio-btn input[type=radio] { display:none; }
+    .radio-btn.padrao.sel  { border-color:var(--azul); background:var(--azul-bg); color:var(--azul); }
+    .radio-btn.emergencia.sel { border-color:var(--erro); background:var(--erro-bg); color:var(--erro); }
+    .radio-btn:not(.sel) { color:var(--muted); }
 
     /* ── BOTÕES ── */
     .btn { padding:11px 20px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; transition:.15s; display:inline-flex; align-items:center; gap:6px; }
     .btn-primary { background:var(--azul); color:#fff; }
     .btn-primary:hover { background:#154d87; }
     .btn-primary:disabled { background:#b0bec5; cursor:not-allowed; }
+    .btn-success { background:var(--verde); color:#fff; }
+    .btn-success:hover { background:#145e35; }
+    .btn-success:disabled { background:#b0bec5; cursor:not-allowed; }
+    .btn-danger  { background:var(--erro-bg); color:var(--erro); border:1.5px solid #fca5a5; }
+    .btn-danger:hover  { background:#fca5a5; }
     .btn-secondary { background:#f1f5f9; color:var(--texto); border:1px solid var(--borda); }
     .btn-secondary:hover { background:#e2e8f0; }
-    .btn-danger { background:var(--erro-bg); color:var(--erro); border:1px solid #fca5a5; }
+    .btn-outline { background:transparent; color:var(--azul); border:1.5px solid var(--azul); }
+    .btn-outline:hover { background:var(--azul-bg); }
     .btn-block { width:100%; justify-content:center; }
+    .btn-row { display:flex; gap:10px; flex-wrap:wrap; }
 
     /* ── SCANNER ── */
     .scanner-wrap { border:2px dashed var(--borda); border-radius:8px; overflow:hidden; margin-bottom:10px; }
@@ -66,6 +84,46 @@
     .alerta { padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:12px; display:none; }
     .alerta-erro { background:var(--erro-bg); color:var(--erro); border:1px solid #fca5a5; }
     .alerta-ok   { background:var(--verde-bg); color:var(--verde); border:1px solid #86efac; }
+    .alerta-warn { background:var(--laranja-bg); color:var(--laranja); border:1px solid #fcd34d; }
+
+    /* ── LISTA DE RNCS (Tratativa / Verificação) ── */
+    .rnc-lista { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+    .rnc-item { display:flex; align-items:center; gap:12px; padding:12px 14px; background:#fff; border:1.5px solid var(--borda); border-radius:8px; cursor:pointer; transition:.15s; }
+    .rnc-item:hover { border-color:var(--azul); background:var(--azul-bg); }
+    .rnc-item.selecionado { border-color:var(--azul); background:var(--azul-bg); }
+    .rnc-item.emergencia  { border-left:4px solid var(--erro); }
+    .rnc-item-ticket { font-size:13px; font-weight:800; color:var(--azul); min-width:58px; }
+    .rnc-item-info   { flex:1; min-width:0; }
+    .rnc-item-titulo { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rnc-item-sub    { font-size:11px; color:var(--muted); margin-top:2px; }
+    .rnc-status-icon { font-size:18px; flex-shrink:0; }
+    .badge-emerg { font-size:10px; font-weight:700; background:var(--erro-bg); color:var(--erro); border:1px solid #fca5a5; padding:1px 6px; border-radius:99px; }
+
+    /* ── BUSCA DE TICKET ── */
+    .busca-ticket { display:flex; gap:8px; margin-bottom:16px; }
+    .busca-ticket input { flex:1; }
+    .busca-ticket .btn { flex-shrink:0; }
+
+    /* ── DADOS RNC (somente leitura) ── */
+    .dados-rnc { background:#f8f9fb; border:1px solid var(--borda); border-radius:8px; padding:14px; margin-bottom:16px; }
+    .dados-rnc-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .dados-rnc-ticket { font-size:18px; font-weight:800; color:var(--azul); }
+    .dados-rnc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
+    .dados-campo { font-size:12px; }
+    .dados-campo span { display:block; color:var(--muted); font-size:11px; margin-bottom:2px; }
+    .dados-descricao { margin-top:10px; font-size:13px; line-height:1.5; border-top:1px solid var(--borda); padding-top:10px; }
+    .links-rnc { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .link-pill { font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; text-decoration:none; }
+    .link-pdf   { background:var(--verde-bg); color:var(--verde); border:1px solid #86efac; }
+    .link-pasta { background:var(--laranja-bg); color:var(--laranja); border:1px solid #fcd34d; }
+    .link-jira  { background:var(--azul-bg); color:var(--azul); border:1px solid #93c5fd; }
+
+    /* ── DETALHE TRATATIVA (somente leitura na verificação) ── */
+    .tratativa-readonly { background:#fff; border:1.5px solid var(--borda); border-radius:8px; padding:16px; margin-bottom:16px; }
+    .tratativa-readonly h4 { font-size:13px; font-weight:700; color:var(--azul); margin-bottom:12px; }
+    .trat-campo { margin-bottom:10px; }
+    .trat-campo label { font-size:11px; color:var(--muted); margin-bottom:3px; }
+    .trat-campo p { font-size:13px; line-height:1.5; background:#f8f9fb; padding:8px 10px; border-radius:6px; border:1px solid var(--borda); }
 
     /* ── KPIs ── */
     .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
@@ -86,11 +144,13 @@
     td { padding:9px 8px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
     tr:last-child td{border-bottom:none;} tr:hover td{background:#f8f9fb;}
     .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; }
-    .pill-aberto{background:var(--azul-bg);color:var(--azul);} .pill-concluido{background:var(--verde-bg);color:var(--verde);}
-    .pill-analise{background:var(--laranja-bg);color:var(--laranja);} .pill-sucata{background:var(--erro-bg);color:var(--erro);}
-    .pill-retrabalho{background:#f5e6ff;color:#6b21a8;}
+    .pill-aberto{background:var(--azul-bg);color:var(--azul);}
+    .pill-concluido{background:var(--verde-bg);color:var(--verde);}
+    .pill-analise{background:var(--laranja-bg);color:var(--laranja);}
+    .pill-sucata{background:var(--erro-bg);color:var(--erro);}
+    .pill-retrabalho{background:var(--roxo-bg);color:var(--roxo);}
 
-    /* ── FILTRO PAINEL ── */
+    /* ── PAINEL HEADER ── */
     .painel-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
     .painel-header h2 { font-size:16px; font-weight:700; color:var(--azul); }
     .header-right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
@@ -104,6 +164,10 @@
     .spinner { width:32px; height:32px; border:3px solid #e0e0e0; border-top:3px solid var(--azul); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px; }
     @keyframes spin { to{transform:rotate(360deg);} }
     .vazio { text-align:center; color:var(--muted); font-size:13px; padding:28px 0; }
+
+    /* ── SEPARADOR ── */
+    .secao-titulo { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:20px 0 10px; }
+    .divider { border:none; border-top:1px solid var(--borda); margin:16px 0; }
   </style>
 </head>
 <body>
@@ -112,29 +176,101 @@
 <nav class="nav">
   <div class="nav-brand">🏭 Agricef · Qualidade</div>
   <div class="nav-tabs">
-    <button class="nav-tab ativo" onclick="trocarPagina('form',this)">📋 Abertura RNC</button>
-    <button class="nav-tab" onclick="trocarPagina('painel',this)">📊 Painel</button>
+    <button class="nav-tab ativo" id="tab-abertura"     onclick="trocarAba('abertura',this)">📋 Abertura RNC</button>
+    <button class="nav-tab"       id="tab-tratativa"    onclick="trocarAba('tratativa',this)">🔧 Tratativa</button>
+    <button class="nav-tab"       id="tab-verificacao"  onclick="trocarAba('verificacao',this)">✅ Verificação QA</button>
+    <button class="nav-tab"       id="tab-painel"       onclick="trocarAba('painel',this)">📊 Painel</button>
   </div>
 </nav>
 
 <!-- ══════════════════════════════════════════════════════
-     PÁGINA: FORMULÁRIO
+     ABA 1 — ABERTURA DE RNC
 ══════════════════════════════════════════════════════ -->
-<div id="pg-form" class="pagina ativa">
+<div id="pg-abertura" class="pagina ativa">
 
   <div id="alerta-form" class="alerta"></div>
+
+  <!-- Prioridade -->
+  <div class="card">
+    <div class="card-titulo">🚦 Prioridade</div>
+    <div class="radio-group">
+      <label class="radio-btn padrao sel" id="radio-padrao" onclick="setPrioridade('Padrão')">
+        <input type="radio" name="prioridade" value="Padrão" checked>
+        🟢 Padrão <span style="font-size:11px;font-weight:400;color:inherit">(SLA 7 dias)</span>
+      </label>
+      <label class="radio-btn emergencia" id="radio-emerg" onclick="setPrioridade('Emergência')">
+        <input type="radio" name="prioridade" value="Emergência">
+        🔴 Emergência <span style="font-size:11px;font-weight:400;color:inherit">(Linha parada)</span>
+      </label>
+    </div>
+  </div>
 
   <!-- Identificação -->
   <div class="card">
     <div class="card-titulo">Identificação</div>
 
     <div class="form-group">
-      <label>RE do Operador *</label>
+      <label>RE do Operador <span class="campo-obrigatorio">*</span></label>
       <input type="text" id="reOperador" placeholder="Ex: 1001" inputmode="numeric">
     </div>
 
+    <div class="form-row">
+      <div class="form-group">
+        <label>Setor Responsável <span class="campo-obrigatorio">*</span></label>
+        <select id="setorResponsavel">
+          <option value="">Selecione...</option>
+          <option>Usinagem</option>
+          <option>Caldeiraria</option>
+          <option>Soldagem</option>
+          <option>Montagem</option>
+          <option>Dobra / Estamparia</option>
+          <option>Pintura</option>
+          <option>Compras / Suprimentos</option>
+          <option>Engenharia</option>
+          <option>Qualidade</option>
+          <option>Expedição</option>
+          <option>Manutenção</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Processo Inspecionado <span class="campo-obrigatorio">*</span></label>
+        <select id="processoInspecionado">
+          <option value="">Selecione...</option>
+          <option>Dobra</option>
+          <option>Usinagem</option>
+          <option>Soldagem</option>
+          <option>Montagem / Teste Final</option>
+          <option>Pintura</option>
+          <option>Recebimento Externo</option>
+          <option>Campo / Pós-Venda</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Origem do Item <span class="campo-obrigatorio">*</span></label>
+        <select id="origemItem" onchange="verificarCampoSerie()">
+          <option value="">Selecione...</option>
+          <option>Recebimento</option>
+          <option>Produção Interna</option>
+          <option>Montagem / Teste Final</option>
+          <option>Campo / Pós-Venda</option>
+        </select>
+      </div>
+      <div class="form-group" id="grupo-numSerie" style="display:none">
+        <label>Nº de Série do Equipamento <span class="campo-obrigatorio">*</span></label>
+        <input type="text" id="numSerie" placeholder="Ex: HAU-2026-001">
+      </div>
+    </div>
+  </div>
+
+  <!-- Rastreabilidade -->
+  <div class="card">
+    <div class="card-titulo">Rastreabilidade</div>
+
     <div class="form-group">
-      <label>Código do Item / OP *</label>
+      <label>Código do Item / OP <span class="campo-obrigatorio">*</span></label>
       <div style="display:flex;gap:8px">
         <input type="text" id="codigoItem" placeholder="Ex: ABC-1234" style="flex:1">
         <button class="btn btn-secondary" onclick="toggleScanner()" id="btnScanner">📷 Scan</button>
@@ -147,38 +283,11 @@
 
     <div class="form-row">
       <div class="form-group">
-        <label>Origem do Item *</label>
-        <select id="origemItem">
-          <option value="">Selecione...</option>
-          <option>Recebimento</option>
-          <option>Producao Interna</option>
-          <option>Montagem</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Setor Responsável *</label>
-        <select id="setorResponsavel">
-          <option value="">Selecione...</option>
-          <option>Usinagem</option>
-          <option>Caldeiraria</option>
-          <option>Engenharia</option>
-          <option>Suprimentos</option>
-          <option>Qualidade</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quantidades -->
-  <div class="card">
-    <div class="card-titulo">Rastreabilidade</div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Qtd Total do Lote *</label>
+        <label>Qtd Total do Lote <span class="campo-obrigatorio">*</span></label>
         <input type="number" id="qtdLote" placeholder="0" min="0" inputmode="numeric">
       </div>
       <div class="form-group">
-        <label>Qtd com Desvio *</label>
+        <label>Qtd com Desvio <span class="campo-obrigatorio">*</span></label>
         <input type="number" id="qtdDesvio" placeholder="0" min="0" inputmode="numeric">
       </div>
     </div>
@@ -201,14 +310,251 @@
     <div class="foto-info" id="fotoInfo"></div>
   </div>
 
-  <!-- Enviar -->
   <button class="btn btn-primary btn-block" id="btnEnviar" onclick="enviarRNC()" style="margin-bottom:20px">
     ✅ Registrar Não Conformidade
   </button>
 </div>
 
 <!-- ══════════════════════════════════════════════════════
-     PÁGINA: PAINEL
+     ABA 2 — TRATATIVA
+══════════════════════════════════════════════════════ -->
+<div id="pg-tratativa" class="pagina">
+
+  <div id="alerta-trat" class="alerta"></div>
+
+  <!-- Busca -->
+  <div class="card">
+    <div class="card-titulo">🔧 Tratativa de RNC</div>
+    <div class="busca-ticket">
+      <input type="text" id="inputTicketTrat" placeholder="Digite o nº do ticket (ex: SGQ-5)" style="text-transform:uppercase">
+      <button class="btn btn-outline" onclick="carregarRNCTratativa()">🔍 Buscar</button>
+    </div>
+
+    <!-- Lista de abertas -->
+    <div class="secao-titulo">RNCs aguardando tratativa</div>
+    <div id="lista-trat-loading" class="loading" style="padding:20px">
+      <div class="spinner"></div>Carregando...
+    </div>
+    <div id="lista-trat" class="rnc-lista" style="display:none"></div>
+    <div id="lista-trat-vazia" class="vazio" style="display:none">🎉 Nenhuma RNC aguardando tratativa.</div>
+  </div>
+
+  <!-- Dados da RNC selecionada (somente leitura) -->
+  <div id="bloco-trat" style="display:none">
+
+    <div class="dados-rnc" id="dados-rnc-trat">
+      <div class="dados-rnc-header">
+        <span class="dados-rnc-ticket" id="trat-ticket">—</span>
+        <span id="trat-prioridade-badge"></span>
+        <span id="trat-status-badge"></span>
+      </div>
+      <div class="dados-rnc-grid">
+        <div class="dados-campo"><span>Setor</span><strong id="trat-setor">—</strong></div>
+        <div class="dados-campo"><span>Processo</span><strong id="trat-processo">—</strong></div>
+        <div class="dados-campo"><span>Origem</span><strong id="trat-origem">—</strong></div>
+        <div class="dados-campo"><span>Código Item</span><strong id="trat-item">—</strong></div>
+        <div class="dados-campo"><span>Qtd Lote / Desvio</span><strong id="trat-qtd">—</strong></div>
+        <div class="dados-campo"><span>Abertura</span><strong id="trat-data">—</strong></div>
+        <div class="dados-campo" id="trat-serie-grupo" style="display:none"><span>Nº de Série</span><strong id="trat-serie">—</strong></div>
+      </div>
+      <div class="dados-descricao" id="trat-descricao"></div>
+      <div class="links-rnc">
+        <a id="trat-link-jira" href="#" target="_blank" class="link-pill link-jira" style="display:none">🔗 Jira</a>
+        <a id="trat-link-pdf"  href="#" target="_blank" class="link-pill link-pdf"  style="display:none">📄 PDF</a>
+        <a id="trat-link-pasta" href="#" target="_blank" class="link-pill link-pasta" style="display:none">📁 Pasta Drive</a>
+      </div>
+    </div>
+
+    <!-- Quem está preenchendo -->
+    <div class="card">
+      <div class="card-titulo">👤 Responsável pela tratativa</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome completo <span class="campo-obrigatorio">*</span></label>
+          <input type="text" id="trat-resp-nome" placeholder="Ex: João Silva">
+        </div>
+        <div class="form-group">
+          <label>E-mail <span class="campo-obrigatorio">*</span></label>
+          <input type="email" id="trat-resp-email" placeholder="joao@agricef.com.br">
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulário de tratativa -->
+    <div class="card">
+      <div class="card-titulo">🛑 Ação de Contenção <span style="font-size:12px;font-weight:400;color:var(--muted)">(O que foi feito AGORA com a peça?)</span></div>
+      <div class="form-group">
+        <textarea id="trat-contencao" placeholder="Ex: Lote isolado na área de quarentena. Inspeção 100% ativada. Peças reprovadas identificadas com etiqueta vermelha..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">🔍 Causa Raiz</div>
+      <div class="form-group">
+        <label>Categoria (Ishikawa) <span class="campo-obrigatorio">*</span></label>
+        <select id="trat-causa-raiz">
+          <option value="">Selecione a categoria...</option>
+          <option>Mão de Obra / Treinamento</option>
+          <option>Máquina / Equipamento</option>
+          <option>Método / Processo</option>
+          <option>Material / Fornecedor</option>
+          <option>Medição / Calibração</option>
+          <option>Meio Ambiente</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Descrição da causa raiz (5 Porquês)</label>
+        <textarea id="trat-causa-desc" placeholder="Por quê aconteceu? Por quê? Por quê?... Descreva até chegar na causa raiz real." style="min-height:70px"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">✅ Ação Corretiva Definitiva <span style="font-size:12px;font-weight:400;color:var(--muted)">(O que será mudado no PROCESSO?)</span></div>
+      <div class="form-group">
+        <textarea id="trat-acao-corret" placeholder="Ex: Ajustado o gabarito de solda para garantir o posicionamento correto. Incluída troca de ferramenta a cada 500 peças no plano de manutenção..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-titulo">📦 Disposição da Peça e Custo</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Disposição <span class="campo-obrigatorio">*</span></label>
+          <select id="trat-disposicao">
+            <option value="">Selecione...</option>
+            <option>Retrabalho</option>
+            <option>Sucata</option>
+            <option>Devolução ao Fornecedor</option>
+            <option>Concessão (uso condicional)</option>
+            <option>Aprovado / Liberado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Horas de Retrabalho</label>
+          <input type="number" id="trat-horas" placeholder="0.0" min="0" step="0.5" inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Custo Estimado Sucateado (R$)</label>
+        <input type="number" id="trat-custo" placeholder="0,00" min="0" step="0.01" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-bottom:20px">
+      <button class="btn btn-secondary" id="btnRascunho" onclick="enviarTratativa('rascunho')" style="flex:1">
+        💾 Salvar Rascunho
+      </button>
+      <button class="btn btn-success" id="btnEnviarTrat" onclick="enviarTratativa('envio')" style="flex:2">
+        📤 Enviar para Verificação QA →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ABA 3 — VERIFICAÇÃO QA
+══════════════════════════════════════════════════════ -->
+<div id="pg-verificacao" class="pagina">
+
+  <div id="alerta-verif" class="alerta"></div>
+
+  <div class="card">
+    <div class="card-titulo">✅ Verificação QA</div>
+    <div class="busca-ticket">
+      <input type="text" id="inputTicketVerif" placeholder="Digite o nº do ticket (ex: SGQ-5)" style="text-transform:uppercase">
+      <button class="btn btn-outline" onclick="carregarRNCVerificacao()">🔍 Buscar</button>
+    </div>
+
+    <div class="secao-titulo">RNCs aguardando verificação</div>
+    <div id="lista-verif-loading" class="loading" style="padding:20px">
+      <div class="spinner"></div>Carregando...
+    </div>
+    <div id="lista-verif" class="rnc-lista" style="display:none"></div>
+    <div id="lista-verif-vazia" class="vazio" style="display:none">🎉 Nenhuma RNC aguardando verificação.</div>
+  </div>
+
+  <!-- Dados + tratativa (somente leitura) -->
+  <div id="bloco-verif" style="display:none">
+
+    <div class="dados-rnc" id="dados-rnc-verif">
+      <div class="dados-rnc-header">
+        <span class="dados-rnc-ticket" id="verif-ticket">—</span>
+        <span id="verif-prioridade-badge"></span>
+        <span id="verif-status-badge"></span>
+      </div>
+      <div class="dados-rnc-grid">
+        <div class="dados-campo"><span>Setor</span><strong id="verif-setor">—</strong></div>
+        <div class="dados-campo"><span>Processo</span><strong id="verif-processo">—</strong></div>
+        <div class="dados-campo"><span>Código Item</span><strong id="verif-item">—</strong></div>
+        <div class="dados-campo"><span>Qtd Desvio</span><strong id="verif-qtd">—</strong></div>
+        <div class="dados-campo"><span>Abertura</span><strong id="verif-data">—</strong></div>
+        <div class="dados-campo"><span>Responsável</span><strong id="verif-resp">—</strong></div>
+      </div>
+      <div class="dados-descricao" id="verif-descricao"></div>
+      <div class="links-rnc">
+        <a id="verif-link-jira"  href="#" target="_blank" class="link-pill link-jira"  style="display:none">🔗 Jira</a>
+        <a id="verif-link-pdf"   href="#" target="_blank" class="link-pill link-pdf"   style="display:none">📄 PDF</a>
+        <a id="verif-link-pasta" href="#" target="_blank" class="link-pill link-pasta" style="display:none">📁 Pasta Drive</a>
+      </div>
+    </div>
+
+    <!-- Tratativa preenchida pelo líder (somente leitura) -->
+    <div class="tratativa-readonly" id="bloco-tratativa-verif">
+      <h4>📋 Tratativa preenchida pelo líder</h4>
+      <div class="trat-campo">
+        <label>Ação de Contenção</label>
+        <p id="verif-contencao">—</p>
+      </div>
+      <div class="trat-campo">
+        <label>Causa Raiz</label>
+        <p id="verif-causa">—</p>
+      </div>
+      <div class="trat-campo">
+        <label>Ação Corretiva Definitiva</label>
+        <p id="verif-acao-corret">—</p>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <div class="dados-campo"><span>Disposição</span><strong id="verif-disposicao">—</strong></div>
+        <div class="dados-campo"><span>Horas Retrabalho</span><strong id="verif-horas">—</strong></div>
+        <div class="dados-campo"><span>Custo Sucateado</span><strong id="verif-custo">—</strong></div>
+      </div>
+    </div>
+
+    <!-- Quem está verificando -->
+    <div class="card">
+      <div class="card-titulo">👤 Verificador (Qualidade)</div>
+      <div class="form-group">
+        <label>Nome do verificador <span class="campo-obrigatorio">*</span></label>
+        <input type="text" id="verif-resp-nome" placeholder="Ex: Ana Costa">
+      </div>
+    </div>
+
+    <!-- Decisão -->
+    <div class="card">
+      <div class="card-titulo">⚖️ Decisão</div>
+      <div class="btn-row" style="margin-bottom:12px">
+        <button class="btn btn-success" id="btnAprovar" onclick="decidirVerificacao(true)" style="flex:1">
+          ✅ Aprovar e Concluir RNC
+        </button>
+        <button class="btn btn-danger" id="btnDevolver" onclick="toggleMotivoDevol()" style="flex:1">
+          ↩️ Devolver ao Setor
+        </button>
+      </div>
+      <div id="motivo-devol-bloco" style="display:none">
+        <div class="form-group">
+          <label>Motivo da devolução <span class="campo-obrigatorio">*</span></label>
+          <textarea id="verif-motivo-devol" placeholder="Descreva por que a tratativa está incompleta ou incorreta..."></textarea>
+        </div>
+        <button class="btn btn-danger btn-block" id="btnConfirmarDevol" onclick="decidirVerificacao(false)">
+          ↩️ Confirmar Devolução
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ABA 4 — PAINEL
 ══════════════════════════════════════════════════════ -->
 <div id="pg-painel" class="pagina">
 
@@ -228,66 +574,133 @@
   </div>
 
   <div id="painel-conteudo" style="display:none">
-    <!-- KPIs -->
     <div class="kpi-grid">
       <div class="kpi azul"><div class="kpi-valor" id="kpi-total">—</div><div class="kpi-label">RNCs no período</div></div>
       <div class="kpi erro"><div class="kpi-valor" id="kpi-abertas">—</div><div class="kpi-label">Abertas / pendentes</div></div>
       <div class="kpi laranja"><div class="kpi-valor" id="kpi-sucata">—</div><div class="kpi-label">Taxa de sucata</div></div>
       <div class="kpi verde"><div class="kpi-valor" id="kpi-lead">—</div><div class="kpi-label">Lead time médio (h)</div></div>
     </div>
-
-    <!-- Gráficos linha 1 -->
     <div class="graficos-grid">
       <div class="g-card"><div class="g-titulo">Volume por setor</div><div style="position:relative;height:200px"><canvas id="g-setor"></canvas></div></div>
       <div class="g-card"><div class="g-titulo">Disposição das peças</div><div style="position:relative;height:200px"><canvas id="g-disposicao"></canvas></div></div>
     </div>
-    <!-- Gráficos linha 2 -->
     <div class="graficos-grid">
       <div class="g-card"><div class="g-titulo">Lead time médio por setor (h)</div><div style="position:relative;height:200px"><canvas id="g-leadtime"></canvas></div></div>
       <div class="g-card"><div class="g-titulo">Causa raiz dos desvios</div><div style="position:relative;height:200px"><canvas id="g-causa"></canvas></div></div>
     </div>
-
-    <!-- Tabela -->
     <div class="card">
       <div class="card-titulo">Últimas RNCs registradas</div>
       <div class="tabela-wrap">
         <table>
           <thead><tr>
-            <th>Ticket</th><th>Data</th><th>Setor</th><th>Disposição</th><th>Status</th><th>Lead Time</th><th>PDF</th>
+            <th>Ticket</th><th>Data</th><th>Setor</th><th>Processo</th><th>Disposição</th><th>Status</th><th>Lead Time</th><th>PDF</th>
           </tr></thead>
-          <tbody id="tabela-body"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody>
+          <tbody id="tabela-body"><tr><td colspan="8" class="vazio">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>
 </div>
 
+
 <!-- ══════════════════════════════════════════════════════
      SCRIPTS
 ══════════════════════════════════════════════════════ -->
 <script>
 // ════════════════════════════════════════════════════
-// ⚙️  CONFIGURAÇÃO — URL do Google Apps Script Web App
+// ⚙️  CONFIGURAÇÃO
 // ════════════════════════════════════════════════════
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxWfAUYEzfQbCVaDsP-VVrFR5TiCBtvDuzhgwIvHZKCVxUnBo8oiTwYi0XRFpDdCLn5Ng/exec";
+const JIRA_BASE = "https://agricef-qualidade.atlassian.net/browse/";
+
+// ── Helpers de API ───────────────────────────────────
+async function gasGet(action, params = {}) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set('page', 'api');
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Erro na API');
+  return json.data;
+}
+
+async function gasPost(action, body) {
+  const res = await fetch(GAS_URL, {
+    method: 'POST', redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, ...body }),
+  });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Erro no servidor');
+  return json.data;
+}
 
 // ── Navegação ────────────────────────────────────────
-function trocarPagina(id, tab) {
+const ABAS_INIT = {};
+function trocarAba(id, tabEl) {
   document.querySelectorAll('.pagina').forEach(p => p.classList.remove('ativa'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('ativo'));
   document.getElementById('pg-' + id).classList.add('ativa');
-  tab.classList.add('ativo');
-  if (id === 'painel' && !painelCarregado) iniciarPainel();
+  (tabEl || document.getElementById('tab-' + id)).classList.add('ativo');
+  // Inicializa a aba na primeira visita
+  if (!ABAS_INIT[id]) {
+    ABAS_INIT[id] = true;
+    if (id === 'painel')      iniciarPainel();
+    if (id === 'tratativa')   iniciarTratativa();
+    if (id === 'verificacao') iniciarVerificacao();
+  }
+  // Atualiza URL sem recarregar
+  const url = new URL(window.location.href);
+  url.searchParams.set('aba', id);
+  window.history.replaceState({}, '', url.toString());
 }
 
+// ── Deep link via URL params ─────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const p = new URLSearchParams(window.location.search);
+  const aba    = p.get('aba');
+  const ticket = p.get('ticket');
+
+  if (aba && aba !== 'abertura') {
+    const tabEl = document.getElementById('tab-' + aba);
+    if (tabEl) { trocarAba(aba, tabEl); }
+    if (ticket) {
+      if (aba === 'tratativa') {
+        document.getElementById('inputTicketTrat').value = ticket.toUpperCase();
+        setTimeout(() => carregarRNCTratativa(), 800);
+      } else if (aba === 'verificacao') {
+        document.getElementById('inputTicketVerif').value = ticket.toUpperCase();
+        setTimeout(() => carregarRNCVerificacao(), 800);
+      }
+    }
+  } else {
+    ABAS_INIT['abertura'] = true;
+  }
+});
+
 // ════════════════════════════════════════════════════
-// FORMULÁRIO
+// ABA 1 — ABERTURA DE RNC
 // ════════════════════════════════════════════════════
 let fotoBase64 = null;
 let scanner    = null;
 let scannerOn  = false;
+let prioridadeSel = 'Padrão';
 
-// ── Foto ─────────────────────────────────────────────
+function setPrioridade(val) {
+  prioridadeSel = val;
+  document.getElementById('radio-padrao').className = 'radio-btn padrao' + (val === 'Padrão' ? ' sel' : '');
+  document.getElementById('radio-emerg').className  = 'radio-btn emergencia' + (val === 'Emergência' ? ' sel' : '');
+}
+
+function verificarCampoSerie() {
+  const origem = document.getElementById('origemItem').value;
+  const mostrar = origem === 'Montagem / Teste Final' || origem === 'Campo / Pós-Venda';
+  document.getElementById('grupo-numSerie').style.display = mostrar ? 'block' : 'none';
+  if (!mostrar) document.getElementById('numSerie').value = '';
+}
+
 function processarFoto(input) {
   const file = input.files[0];
   if (!file) return;
@@ -312,24 +725,20 @@ function processarFoto(input) {
   reader.readAsDataURL(file);
 }
 
-// ── Scanner ───────────────────────────────────────────
 function toggleScanner() {
   if (scannerOn) { pararScanner(); return; }
   document.getElementById('scannerWrap').style.display = 'block';
   document.getElementById('btnScanner').textContent = '✕ Fechar';
   scanner = new Html5Qrcode('scanner-preview');
   scanner.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 220, height: 120 } },
+    { facingMode: 'environment' }, { fps: 10, qrbox: { width: 220, height: 120 } },
     code => {
       document.getElementById('codigoItem').value = code;
       const res = document.getElementById('scannerResultado');
-      res.textContent = '✅ Lido: ' + code;
-      res.style.display = 'block';
+      res.textContent = '✅ Lido: ' + code; res.style.display = 'block';
       pararScanner();
-    },
-    () => {}
-  ).catch(() => mostrarAlerta('Câmera não disponível para scanner.', 'erro'));
+    }, () => {}
+  ).catch(() => mostrarAlertaForm('Câmera não disponível para scanner.', 'erro'));
   scannerOn = true;
 }
 function pararScanner() {
@@ -339,93 +748,327 @@ function pararScanner() {
   scannerOn = false;
 }
 
-// ── Validação e envio ─────────────────────────────────
 async function enviarRNC() {
   const dados = {
-    reOperador:        campo('reOperador'),
-    codigoItem:        campo('codigoItem'),
-    origemItem:        campo('origemItem'),
-    setorResponsavel:  campo('setorResponsavel'),
-    qtdLote:           campo('qtdLote'),
-    qtdDesvio:         campo('qtdDesvio'),
-    descricaoDefeito:  campo('descricaoDefeito'),
+    reOperador:       v('reOperador'),
+    codigoItem:       v('codigoItem'),
+    origemItem:       v('origemItem'),
+    setorResponsavel: v('setorResponsavel'),
+    processoInspecionado: v('processoInspecionado'),
+    numSerie:         v('numSerie'),
+    qtdLote:          v('qtdLote'),
+    qtdDesvio:        v('qtdDesvio'),
+    descricaoDefeito: v('descricaoDefeito'),
+    prioridade:       prioridadeSel,
+    processo:         v('processoInspecionado'),
   };
 
-  // Validação
-  const obrigatorios = ['reOperador','codigoItem','origemItem','setorResponsavel','qtdLote','qtdDesvio','descricaoDefeito'];
-  for (const f of obrigatorios) {
-    if (!dados[f]) { mostrarAlerta('Preencha todos os campos obrigatórios.', 'erro'); focar(f); return; }
+  const obrig = ['reOperador','codigoItem','origemItem','setorResponsavel','processoInspecionado','qtdLote','qtdDesvio','descricaoDefeito'];
+  for (const f of obrig) {
+    if (!dados[f]) { mostrarAlertaForm('Preencha todos os campos obrigatórios.', 'erro'); focar(f); return; }
   }
-  // foto é opcional — segue sem imagem se não houver
+  const origemReqSerie = dados.origemItem === 'Montagem / Teste Final' || dados.origemItem === 'Campo / Pós-Venda';
+  if (origemReqSerie && !dados.numSerie) { mostrarAlertaForm('Informe o Nº de Série do equipamento.', 'erro'); focar('numSerie'); return; }
 
   const btn = document.getElementById('btnEnviar');
-  btn.disabled = true;
-  btn.textContent = '⏳ Enviando...';
-  esconderAlerta();
+  btn.disabled = true; btn.textContent = '⏳ Enviando...';
+  esconderAlerta('alerta-form');
 
   try {
-    const res = await fetch(GAS_URL, {
-      method:   'POST',
-      redirect: 'follow',
-      headers:  { 'Content-Type': 'text/plain;charset=utf-8' },
-      body:     JSON.stringify({ dados, imagem: fotoBase64 }),
-    });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || 'Erro no servidor');
-
-    mostrarAlerta(`✅ RNC registrada com sucesso! Ticket: ${json.data.ticket}`, 'ok');
+    const res = await gasPost('criarRNC', { dados, imagem: fotoBase64 });
+    mostrarAlertaForm(`✅ RNC registrada! Ticket: ${res.ticket}`, 'ok');
     resetarForm();
+    // Marca tratativa como não inicializada para recarregar lista
+    delete ABAS_INIT['tratativa'];
   } catch (e) {
-    mostrarAlerta('❌ Erro ao enviar: ' + (e.message || e), 'erro');
+    mostrarAlertaForm('❌ Erro ao enviar: ' + (e.message || e), 'erro');
   } finally {
-    btn.disabled = false;
-    btn.textContent = '✅ Registrar Não Conformidade';
+    btn.disabled = false; btn.textContent = '✅ Registrar Não Conformidade';
   }
 }
 
-function campo(id) { return document.getElementById(id).value.trim(); }
-function focar(id) { document.getElementById(id).focus(); document.getElementById(id).scrollIntoView({behavior:'smooth',block:'center'}); }
-
-function mostrarAlerta(msg, tipo) {
-  const el = document.getElementById('alerta-form');
-  el.className = 'alerta alerta-' + tipo;
-  el.textContent = msg;
-  el.style.display = 'block';
-  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-function esconderAlerta() { document.getElementById('alerta-form').style.display = 'none'; }
-
 function resetarForm() {
-  ['reOperador','codigoItem','qtdLote','qtdDesvio','descricaoDefeito'].forEach(id => document.getElementById(id).value = '');
-  ['origemItem','setorResponsavel'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  ['reOperador','codigoItem','qtdLote','qtdDesvio','descricaoDefeito','numSerie'].forEach(id => document.getElementById(id).value = '');
+  ['origemItem','setorResponsavel','processoInspecionado'].forEach(id => document.getElementById(id).selectedIndex = 0);
   document.getElementById('fotoInput').value = '';
   document.getElementById('fotoPreview').style.display = 'none';
   document.getElementById('fotoInfo').textContent = '';
   document.getElementById('scannerResultado').style.display = 'none';
+  document.getElementById('grupo-numSerie').style.display = 'none';
   fotoBase64 = null;
+  setPrioridade('Padrão');
 }
 
 // ════════════════════════════════════════════════════
-// PAINEL
+// ABA 2 — TRATATIVA
+// ════════════════════════════════════════════════════
+let rncTratAtual = null;
+
+async function iniciarTratativa() {
+  const load  = document.getElementById('lista-trat-loading');
+  const lista = document.getElementById('lista-trat');
+  const vazio = document.getElementById('lista-trat-vazia');
+  load.style.display = 'block'; lista.style.display = 'none'; vazio.style.display = 'none';
+  try {
+    const rncs = await gasGet('rncsAbertas');
+    load.style.display = 'none';
+    if (!rncs || !rncs.length) { vazio.style.display = 'block'; return; }
+    lista.innerHTML = rncs.map(r => `
+      <div class="rnc-item${r.prioridade === 'Emergência' ? ' emergencia' : ''}" onclick="selecionarRNCTratativa('${r.ticket}')">
+        <span class="rnc-item-ticket">${r.ticket}</span>
+        <div class="rnc-item-info">
+          <div class="rnc-item-titulo">${r.codigoItem} · ${r.setor}</div>
+          <div class="rnc-item-sub">${r.status} · ${r.dataCriacao}${r.prioridade === 'Emergência' ? ' · <span class="badge-emerg">🔴 EMERGÊNCIA</span>' : ''}</div>
+        </div>
+        <span class="rnc-status-icon" title="${r.trativadaPreenchida ? 'Tratativa preenchida' : 'Aguardando tratativa'}">${r.trativadaPreenchida ? '✅' : '⏳'}</span>
+      </div>`).join('');
+    lista.style.display = 'flex';
+  } catch(e) {
+    load.innerHTML = `<div style="color:var(--erro);font-size:13px">⚠ ${e.message}</div>`;
+  }
+}
+
+async function selecionarRNCTratativa(ticket) {
+  document.getElementById('inputTicketTrat').value = ticket;
+  // Destaca item selecionado
+  document.querySelectorAll('#lista-trat .rnc-item').forEach(el => el.classList.remove('selecionado'));
+  event && event.currentTarget && event.currentTarget.classList.add('selecionado');
+  await carregarRNCTratativa(ticket);
+}
+
+async function carregarRNCTratativa(ticketParam) {
+  const ticket = (ticketParam || v('inputTicketTrat')).toUpperCase().trim();
+  if (!ticket) { mostrarAlertaTrat('Informe o número do ticket.', 'warn'); return; }
+  esconderAlerta('alerta-trat');
+  document.getElementById('bloco-trat').style.display = 'none';
+  try {
+    const rnc = await gasGet('rnc', { ticket });
+    rncTratAtual = rnc;
+    preencherDadosRNCTrat(rnc);
+    document.getElementById('bloco-trat').style.display = 'block';
+    document.getElementById('bloco-trat').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    mostrarAlertaTrat('❌ ' + e.message, 'erro');
+  }
+}
+
+function preencherDadosRNCTrat(rnc) {
+  document.getElementById('trat-ticket').textContent  = rnc.ticket;
+  document.getElementById('trat-setor').textContent   = rnc.setor;
+  document.getElementById('trat-processo').textContent= rnc.processo;
+  document.getElementById('trat-origem').textContent  = rnc.origem;
+  document.getElementById('trat-item').textContent    = rnc.codigoItem;
+  document.getElementById('trat-qtd').textContent     = `${rnc.qtdLote} / ${rnc.qtdDesvio}`;
+  document.getElementById('trat-data').textContent    = rnc.dataCriacao;
+  document.getElementById('trat-descricao').textContent = rnc.descricao || '—';
+
+  // Nº de Série condicional
+  if (rnc.numSerie) {
+    document.getElementById('trat-serie').textContent = rnc.numSerie;
+    document.getElementById('trat-serie-grupo').style.display = 'block';
+  } else {
+    document.getElementById('trat-serie-grupo').style.display = 'none';
+  }
+
+  // Badges
+  document.getElementById('trat-prioridade-badge').innerHTML =
+    rnc.prioridade === 'Emergência' ? '<span class="badge-emerg">🔴 EMERGÊNCIA</span>' : '';
+  document.getElementById('trat-status-badge').innerHTML = pillS(rnc.status);
+
+  // Links externos
+  setLink('trat-link-jira',  JIRA_BASE + rnc.ticket, true);
+  setLink('trat-link-pdf',   rnc.urlPdf,  !!rnc.urlPdf);
+  setLink('trat-link-pasta', rnc.urlPasta, !!rnc.urlPasta);
+
+  // Pré-preenche campos se já tiver rascunho
+  if (rnc.contencao)    document.getElementById('trat-contencao').value    = rnc.contencao;
+  if (rnc.causaRaiz)    document.getElementById('trat-causa-raiz').value   = rnc.causaRaiz;
+  if (rnc.acaoCorretiva)document.getElementById('trat-acao-corret').value  = rnc.acaoCorretiva;
+  if (rnc.disposicao)   document.getElementById('trat-disposicao').value   = rnc.disposicao;
+  if (rnc.horasRetr)    document.getElementById('trat-horas').value        = rnc.horasRetr;
+  if (rnc.custoSucata)  document.getElementById('trat-custo').value        = rnc.custoSucata;
+  if (rnc.respNome)     document.getElementById('trat-resp-nome').value    = rnc.respNome;
+  if (rnc.respEmail)    document.getElementById('trat-resp-email').value   = rnc.respEmail;
+}
+
+async function enviarTratativa(fase) {
+  if (!rncTratAtual) { mostrarAlertaTrat('Carregue uma RNC primeiro.', 'warn'); return; }
+
+  const dados = {
+    contencao:    v('trat-contencao'),
+    causaRaiz:    v('trat-causa-raiz'),
+    acaoCorretiva:v('trat-acao-corret'),
+    disposicao:   v('trat-disposicao'),
+    horasRetr:    v('trat-horas'),
+    custoSucata:  v('trat-custo'),
+    respNome:     v('trat-resp-nome'),
+    respEmail:    v('trat-resp-email'),
+  };
+
+  if (!dados.respNome || !dados.respEmail) {
+    mostrarAlertaTrat('Informe nome e e-mail do responsável.', 'erro'); return;
+  }
+  if (fase === 'envio') {
+    if (!dados.contencao)    { mostrarAlertaTrat('Preencha a Ação de Contenção.', 'erro'); return; }
+    if (!dados.causaRaiz)    { mostrarAlertaTrat('Selecione a Causa Raiz.', 'erro'); return; }
+    if (!dados.acaoCorretiva){ mostrarAlertaTrat('Preencha a Ação Corretiva.', 'erro'); return; }
+    if (!dados.disposicao)   { mostrarAlertaTrat('Selecione a Disposição da Peça.', 'erro'); return; }
+  }
+
+  const btn = fase === 'envio' ? document.getElementById('btnEnviarTrat') : document.getElementById('btnRascunho');
+  btn.disabled = true; btn.textContent = '⏳ Salvando...';
+  esconderAlerta('alerta-trat');
+
+  try {
+    const res = await gasPost('salvarTratativa', { ticket: rncTratAtual.ticket, dados, fase });
+    const msg = fase === 'envio'
+      ? `✅ Tratativa enviada! ${res.ticket} → ${res.status}. A equipe de QA foi notificada.`
+      : `💾 Rascunho salvo! ${res.ticket} → ${res.status}.`;
+    mostrarAlertaTrat(msg, 'ok');
+    if (fase === 'envio') {
+      document.getElementById('bloco-trat').style.display = 'none';
+      rncTratAtual = null;
+      delete ABAS_INIT['tratativa'];
+      delete ABAS_INIT['verificacao'];
+      setTimeout(() => iniciarTratativa(), 500);
+    }
+  } catch(e) {
+    mostrarAlertaTrat('❌ ' + e.message, 'erro');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = fase === 'envio' ? '📤 Enviar para Verificação QA →' : '💾 Salvar Rascunho';
+  }
+}
+
+// ════════════════════════════════════════════════════
+// ABA 3 — VERIFICAÇÃO QA
+// ════════════════════════════════════════════════════
+let rncVerifAtual = null;
+
+async function iniciarVerificacao() {
+  const load  = document.getElementById('lista-verif-loading');
+  const lista = document.getElementById('lista-verif');
+  const vazio = document.getElementById('lista-verif-vazia');
+  load.style.display = 'block'; lista.style.display = 'none'; vazio.style.display = 'none';
+  try {
+    const rncs = await gasGet('rncsVerificacao');
+    load.style.display = 'none';
+    if (!rncs || !rncs.length) { vazio.style.display = 'block'; return; }
+    lista.innerHTML = rncs.map(r => `
+      <div class="rnc-item${r.prioridade === 'Emergência' ? ' emergencia' : ''}" onclick="selecionarRNCVerificacao('${r.ticket}')">
+        <span class="rnc-item-ticket">${r.ticket}</span>
+        <div class="rnc-item-info">
+          <div class="rnc-item-titulo">${r.codigoItem} · ${r.setor}</div>
+          <div class="rnc-item-sub">Resp: ${r.respNome} · ${r.dataCriacao}${r.prioridade === 'Emergência' ? ' · <span class="badge-emerg">🔴 EMERGÊNCIA</span>' : ''}</div>
+        </div>
+        <span class="rnc-status-icon">🔍</span>
+      </div>`).join('');
+    lista.style.display = 'flex';
+  } catch(e) {
+    load.innerHTML = `<div style="color:var(--erro);font-size:13px">⚠ ${e.message}</div>`;
+  }
+}
+
+async function selecionarRNCVerificacao(ticket) {
+  document.getElementById('inputTicketVerif').value = ticket;
+  document.querySelectorAll('#lista-verif .rnc-item').forEach(el => el.classList.remove('selecionado'));
+  event && event.currentTarget && event.currentTarget.classList.add('selecionado');
+  await carregarRNCVerificacao(ticket);
+}
+
+async function carregarRNCVerificacao(ticketParam) {
+  const ticket = (ticketParam || v('inputTicketVerif')).toUpperCase().trim();
+  if (!ticket) { mostrarAlertaVerif('Informe o número do ticket.', 'warn'); return; }
+  esconderAlerta('alerta-verif');
+  document.getElementById('bloco-verif').style.display = 'none';
+  document.getElementById('motivo-devol-bloco').style.display = 'none';
+  try {
+    const rnc = await gasGet('rnc', { ticket });
+    rncVerifAtual = rnc;
+    preencherDadosRNCVerif(rnc);
+    document.getElementById('bloco-verif').style.display = 'block';
+    document.getElementById('bloco-verif').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    mostrarAlertaVerif('❌ ' + e.message, 'erro');
+  }
+}
+
+function preencherDadosRNCVerif(rnc) {
+  document.getElementById('verif-ticket').textContent   = rnc.ticket;
+  document.getElementById('verif-setor').textContent    = rnc.setor;
+  document.getElementById('verif-processo').textContent = rnc.processo;
+  document.getElementById('verif-item').textContent     = rnc.codigoItem;
+  document.getElementById('verif-qtd').textContent      = `${rnc.qtdLote} / ${rnc.qtdDesvio}`;
+  document.getElementById('verif-data').textContent     = rnc.dataCriacao;
+  document.getElementById('verif-resp').textContent     = rnc.respNome || '—';
+  document.getElementById('verif-descricao').textContent = rnc.descricao || '—';
+
+  document.getElementById('verif-prioridade-badge').innerHTML =
+    rnc.prioridade === 'Emergência' ? '<span class="badge-emerg">🔴 EMERGÊNCIA</span>' : '';
+  document.getElementById('verif-status-badge').innerHTML = pillS(rnc.status);
+
+  setLink('verif-link-jira',  JIRA_BASE + rnc.ticket, true);
+  setLink('verif-link-pdf',   rnc.urlPdf,   !!rnc.urlPdf);
+  setLink('verif-link-pasta', rnc.urlPasta, !!rnc.urlPasta);
+
+  // Tratativa (somente leitura)
+  document.getElementById('verif-contencao').textContent  = rnc.contencao    || '(não preenchido)';
+  document.getElementById('verif-causa').textContent      = [rnc.causaRaiz, rnc.causaDesc].filter(Boolean).join(' — ') || '(não preenchido)';
+  document.getElementById('verif-acao-corret').textContent = rnc.acaoCorretiva || '(não preenchido)';
+  document.getElementById('verif-disposicao').textContent  = rnc.disposicao   || '—';
+  document.getElementById('verif-horas').textContent       = rnc.horasRetr    ? rnc.horasRetr + 'h' : '—';
+  document.getElementById('verif-custo').textContent       = rnc.custoSucata  ? 'R$ ' + Number(rnc.custoSucata).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '—';
+}
+
+function toggleMotivoDevol() {
+  const bloco = document.getElementById('motivo-devol-bloco');
+  bloco.style.display = bloco.style.display === 'none' ? 'block' : 'none';
+}
+
+async function decidirVerificacao(aprovado) {
+  if (!rncVerifAtual) { mostrarAlertaVerif('Carregue uma RNC primeiro.', 'warn'); return; }
+
+  const responsavel = v('verif-resp-nome');
+  if (!responsavel) { mostrarAlertaVerif('Informe o nome do verificador.', 'erro'); return; }
+
+  let motivo = '';
+  if (!aprovado) {
+    motivo = v('verif-motivo-devol');
+    if (!motivo) { mostrarAlertaVerif('Informe o motivo da devolução.', 'erro'); return; }
+  }
+
+  const btn = aprovado ? document.getElementById('btnAprovar') : document.getElementById('btnConfirmarDevol');
+  btn.disabled = true; btn.textContent = '⏳ Processando...';
+  esconderAlerta('alerta-verif');
+
+  try {
+    const res = await gasPost('verificarRNC', {
+      ticket: rncVerifAtual.ticket, aprovado, motivo, responsavel,
+    });
+    const msg = aprovado
+      ? `✅ RNC ${res.ticket} concluída com sucesso! O responsável foi notificado.`
+      : `↩️ RNC ${res.ticket} devolvida ao setor. O líder responsável foi notificado.`;
+    mostrarAlertaVerif(msg, aprovado ? 'ok' : 'warn');
+    document.getElementById('bloco-verif').style.display = 'none';
+    rncVerifAtual = null;
+    delete ABAS_INIT['verificacao'];
+    delete ABAS_INIT['tratativa'];
+    setTimeout(() => iniciarVerificacao(), 500);
+  } catch(e) {
+    mostrarAlertaVerif('❌ ' + e.message, 'erro');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = aprovado ? '✅ Aprovar e Concluir RNC' : '↩️ Confirmar Devolução';
+  }
+}
+
+// ════════════════════════════════════════════════════
+// ABA 4 — PAINEL
 // ════════════════════════════════════════════════════
 const CORES = ['#1a56a0','#1a7a45','#b45309','#c0392b','#6b21a8','#0e7490','#854d0e','#166534'];
 let charts = {};
-let painelCarregado = false;
-
-async function gasGet(action, params = {}) {
-  const url = new URL(GAS_URL);
-  url.searchParams.set('page', 'api');
-  url.searchParams.set('action', action);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || 'Erro na API');
-  return json.data;
-}
 
 async function iniciarPainel() {
-  painelCarregado = true;
   try {
     const meses = await gasGet('meses');
     const sel   = document.getElementById('filtroMes');
@@ -446,7 +1089,6 @@ async function recarregarPainel() {
   document.getElementById('painel-loading').style.display = 'block';
   document.getElementById('painel-conteudo').style.display = 'none';
   document.getElementById('btnRefresh').disabled = true;
-
   try {
     const params = mes ? { mesAno: mes } : {};
     const dados  = await gasGet('dashboard', params);
@@ -464,22 +1106,19 @@ function renderPainel(dados) {
   document.getElementById('painel-loading').style.display = 'none';
   document.getElementById('painel-conteudo').style.display = 'block';
   document.getElementById('tsAtualizado').textContent = new Date().toLocaleTimeString('pt-BR');
-
   if (!dados || !dados.length) {
-    document.getElementById('tabela-body').innerHTML = '<tr><td colspan="7" class="vazio">Nenhuma RNC encontrada.</td></tr>';
+    document.getElementById('tabela-body').innerHTML = '<tr><td colspan="8" class="vazio">Nenhuma RNC encontrada.</td></tr>';
     atualizarKPIs([], []); return;
   }
   const concluidas = dados.filter(r => r.status === 'Concluído' && r.leadTimeH !== null);
   atualizarKPIs(dados, concluidas);
-  renderGraficoSetor(dados);
-  renderGraficoDisposicao(dados);
-  renderGraficoLeadTime(concluidas);
-  renderGraficoCausa(dados);
+  renderGraficoSetor(dados); renderGraficoDisposicao(dados);
+  renderGraficoLeadTime(concluidas); renderGraficoCausa(dados);
   renderTabela(dados.slice(0, 30));
 }
 
 function atualizarKPIs(dados, concluidas) {
-  const total   = dados.length;
+  const total = dados.length;
   const abertas = dados.filter(r => r.status !== 'Concluído').length;
   const sucata  = dados.filter(r => r.disposicao === 'Sucata').length;
   const taxa    = total > 0 ? Math.round(sucata/total*100) : 0;
@@ -490,11 +1129,11 @@ function atualizarKPIs(dados, concluidas) {
   document.getElementById('kpi-lead').textContent    = lead !== null ? lead + 'h' : '—';
 }
 
-function agrupar(arr, k) { return arr.reduce((a,i)=>{const v=i[k]||'—';a[v]=(a[v]||0)+1;return a;},{}); }
+function agrupar(arr, k) { return arr.reduce((a,i)=>{const val=i[k]||'—';a[val]=(a[val]||0)+1;return a;},{}); }
 function destruir(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
-function baseOpts(lY) {
+function baseOpts() {
   return { responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}${lY?' '+lY:''}`}}},
+    plugins:{legend:{display:false}},
     scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{grid:{color:'#f0f0f0'},ticks:{font:{size:11}},beginAtZero:true}} };
 }
 
@@ -502,28 +1141,25 @@ function renderGraficoSetor(dados) {
   const c=agrupar(dados,'setor'); const l=Object.keys(c).sort((a,b)=>c[b]-c[a]);
   destruir('g-setor');
   charts['g-setor']=new Chart(document.getElementById('g-setor'),{type:'bar',
-    data:{labels:l,datasets:[{label:'RNCs',data:l.map(x=>c[x]),backgroundColor:CORES.slice(0,l.length),borderRadius:4,borderSkipped:false}]},
-    options:baseOpts('')});
+    data:{labels:l,datasets:[{data:l.map(x=>c[x]),backgroundColor:CORES.slice(0,l.length),borderRadius:4,borderSkipped:false}]},
+    options:baseOpts()});
 }
 function renderGraficoDisposicao(dados) {
   const c=agrupar(dados,'disposicao'); const l=Object.keys(c);
   destruir('g-disposicao');
   charts['g-disposicao']=new Chart(document.getElementById('g-disposicao'),{type:'doughnut',
     data:{labels:l,datasets:[{data:l.map(x=>c[x]),backgroundColor:CORES.slice(0,l.length),borderWidth:2,borderColor:'#fff'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}},
-      tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}`}}}}});
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}});
 }
 function renderGraficoLeadTime(concluidas) {
-  destruir('g-leadtime');
-  if (!concluidas.length) return;
+  destruir('g-leadtime'); if (!concluidas.length) return;
   const soma={},cnt={};
   concluidas.forEach(r=>{soma[r.setor]=(soma[r.setor]||0)+r.leadTimeH;cnt[r.setor]=(cnt[r.setor]||0)+1;});
   const l=Object.keys(soma).sort((a,b)=>(soma[b]/cnt[b])-(soma[a]/cnt[a]));
   const m=l.map(x=>Math.round(soma[x]/cnt[x]));
   charts['g-leadtime']=new Chart(document.getElementById('g-leadtime'),{type:'bar',
-    data:{labels:l,datasets:[{label:'h',data:m,backgroundColor:m.map(v=>v>48?'#c0392b':v>24?'#b45309':'#1a7a45'),borderRadius:4,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw} h`}}},
+    data:{labels:l,datasets:[{data:m,backgroundColor:m.map(val=>val>48?'#c0392b':val>24?'#b45309':'#1a7a45'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},
       scales:{x:{grid:{color:'#f0f0f0'},ticks:{font:{size:11}},beginAtZero:true},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
 }
 function renderGraficoCausa(dados) {
@@ -531,23 +1167,66 @@ function renderGraficoCausa(dados) {
   const l=Object.keys(c).sort((a,b)=>c[b]-c[a]);
   destruir('g-causa');
   charts['g-causa']=new Chart(document.getElementById('g-causa'),{type:'bar',
-    data:{labels:l,datasets:[{label:'Ocorrências',data:l.map(x=>c[x]),backgroundColor:'#6b21a8',borderRadius:4,borderSkipped:false}]},
-    options:baseOpts('')});
+    data:{labels:l,datasets:[{data:l.map(x=>c[x]),backgroundColor:'#6b21a8',borderRadius:4,borderSkipped:false}]},
+    options:baseOpts()});
 }
 function renderTabela(dados) {
-  const tbody=document.getElementById('tabela-body');
-  if (!dados.length){tbody.innerHTML='<tr><td colspan="7" class="vazio">Sem dados.</td></tr>';return;}
-  tbody.innerHTML=dados.map(r=>{
-    const lead=r.leadTimeH!==null?r.leadTimeH+'h':'<span style="color:#999">Aberto</span>';
-    const pdf=r.urlPdf?`<a href="${r.urlPdf}" target="_blank" style="color:var(--azul);font-weight:600">PDF</a>`:'—';
+  const tbody = document.getElementById('tabela-body');
+  if (!dados.length){tbody.innerHTML='<tr><td colspan="8" class="vazio">Sem dados.</td></tr>';return;}
+  tbody.innerHTML = dados.map(r => {
+    const lead = r.leadTimeH !== null ? r.leadTimeH+'h' : '<span style="color:#999">Aberto</span>';
+    const pdf  = r.urlPdf ? `<a href="${r.urlPdf}" target="_blank" style="color:var(--azul);font-weight:600">PDF</a>` : '—';
+    const proc = r.processo || '—';
     return `<tr>
-      <td><strong>${r.ticket}</strong></td><td>${r.dataCriacao}</td><td>${r.setor}</td>
-      <td>${pillD(r.disposicao)}</td><td>${pillS(r.status)}</td><td>${lead}</td><td>${pdf}</td>
+      <td><strong>${r.ticket}</strong></td>
+      <td>${r.dataCriacao}</td>
+      <td>${r.setor}</td>
+      <td style="font-size:12px;color:var(--muted)">${proc}</td>
+      <td>${pillD(r.disposicao)}</td>
+      <td>${pillS(r.status)}</td>
+      <td>${lead}</td>
+      <td>${pdf}</td>
     </tr>`;
   }).join('');
 }
-function pillS(s){const m={'Concluído':'pill-concluido','Em Análise':'pill-analise','Aberto':'pill-aberto','Plano de Ação':'pill-analise','Verificação QA':'pill-analise'};return`<span class="pill ${m[s]||'pill-aberto'}">${s}</span>`;}
-function pillD(d){const m={'Sucata':'pill-sucata','Retrabalho':'pill-retrabalho','Concessão':'pill-analise','Devolução':'pill-aberto','Pendente':'pill-aberto'};return`<span class="pill ${m[d]||'pill-aberto'}">${d||'—'}</span>`;}
+
+// ════════════════════════════════════════════════════
+// UTILITÁRIOS
+// ════════════════════════════════════════════════════
+function v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function focar(id) { const el = document.getElementById(id); if(el){el.focus();el.scrollIntoView({behavior:'smooth',block:'center'});} }
+function setLink(id, href, show) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.href = href || '#';
+  el.style.display = show ? 'inline-block' : 'none';
+}
+
+function mostrarAlertaForm(msg, tipo) { mostrarAlerta('alerta-form', msg, tipo); }
+function mostrarAlertaTrat(msg, tipo) { mostrarAlerta('alerta-trat', msg, tipo); }
+function mostrarAlertaVerif(msg, tipo) { mostrarAlerta('alerta-verif', msg, tipo); }
+
+function mostrarAlerta(elId, msg, tipo) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.className = 'alerta alerta-' + tipo;
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function esconderAlerta(elId) {
+  const el = document.getElementById(elId);
+  if (el) el.style.display = 'none';
+}
+
+function pillS(s) {
+  const m = {'Concluído':'pill-concluido','Em Análise':'pill-analise','Aberto':'pill-aberto','Plano de Ação':'pill-analise','Verificação QA':'pill-analise'};
+  return `<span class="pill ${m[s]||'pill-aberto'}">${s}</span>`;
+}
+function pillD(d) {
+  const m = {'Sucata':'pill-sucata','Retrabalho':'pill-retrabalho','Concessão (uso condicional)':'pill-analise','Devolução ao Fornecedor':'pill-aberto','Aprovado / Liberado':'pill-concluido','Pendente':'pill-aberto'};
+  return `<span class="pill ${m[d]||'pill-aberto'}">${d||'—'}</span>`;
+}
 </script>
 </body>
 </html>
