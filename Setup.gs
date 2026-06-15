@@ -533,3 +533,145 @@ function verificarSetup() {
     Logger.log("   Execute as funções de setup correspondentes.");
   }
 }
+
+
+// ============================================================
+// GESTÃO DE REs E E-MAILS (sem alterar código-fonte)
+// ============================================================
+
+/**
+ * Configura a lista de REs autorizados a abrir RNC.
+ *
+ * Como usar:
+ *   1. Edite o array abaixo com os REs reais dos operadores
+ *   2. Execute esta função uma única vez no editor GAS
+ *   3. Os REs ficam armazenados no PropertiesService (seguro)
+ *
+ * Para adicionar/remover REs depois: edite e execute de novo.
+ * A lista substitui completamente a anterior.
+ */
+function configurarREs() {
+  // ─── EDITE AQUI com os REs reais dos operadores ───────────
+  const RES = [
+    // "1001",
+    // "1002",
+    // Adicione todos os REs autorizados
+  ];
+  // ──────────────────────────────────────────────────────────
+
+  if (!RES.length) {
+    Logger.log("⚠ Nenhum RE informado. Edite o array RES dentro de configurarREs() antes de executar.");
+    return;
+  }
+
+  PropertiesService.getScriptProperties().setProperty("RES_AUTORIZADOS", JSON.stringify(RES));
+  Logger.log(`✅ ${RES.length} REs configurados: ${RES.join(", ")}`);
+  Logger.log("   Os REs ficam armazenados no PropertiesService — não aparecem no código-fonte.");
+}
+
+/**
+ * Lê e exibe os REs atualmente configurados no PropertiesService.
+ * Útil para verificar sem precisar editar nada.
+ */
+function listarREs() {
+  const stored = PropertiesService.getScriptProperties().getProperty("RES_AUTORIZADOS");
+  if (!stored) {
+    Logger.log("⚠ Nenhum RE configurado ainda. Execute configurarREs() primeiro.");
+    return;
+  }
+  const lista = JSON.parse(stored);
+  Logger.log(`✅ ${lista.length} REs autorizados: ${lista.join(", ")}`);
+}
+
+/**
+ * Configura os e-mails dos supervisores por setor.
+ *
+ * Como usar:
+ *   1. Preencha os e-mails no objeto abaixo
+ *   2. Execute esta função uma única vez (ou sempre que mudar um e-mail)
+ *   3. Os valores atualizam CODE.gs em tempo de execução via PropertiesService
+ *
+ * Chaves devem bater exatamente com as opções do select "Setor Responsável" no HTML.
+ */
+function configurarEmailsSetor() {
+  // ─── EDITE AQUI com os e-mails reais dos supervisores ─────
+  const EMAILS = {
+    "Usinagem":               "",  // ex: "supervisor.usinagem@agricef.com.br"
+    "Caldeiraria":            "",
+    "Soldagem":               "",
+    "Montagem":               "",
+    "Dobra / Estamparia":     "",
+    "Pintura":                "",
+    "Compras / Suprimentos":  "",
+    "Engenharia":             "",
+    "Qualidade":              "",
+    "Expedição":              "",
+    "Manutenção":             "",
+  };
+  // ──────────────────────────────────────────────────────────
+
+  const preenchidos = Object.entries(EMAILS).filter(([,v]) => !!v);
+  if (!preenchidos.length) {
+    Logger.log("⚠ Nenhum e-mail preenchido. Edite o objeto EMAILS antes de executar.");
+    return;
+  }
+
+  PropertiesService.getScriptProperties().setProperty("EMAILS_SETOR", JSON.stringify(EMAILS));
+  Logger.log(`✅ E-mails de ${preenchidos.length} setores configurados:`);
+  preenchidos.forEach(([setor, email]) => Logger.log(`   ${setor}: ${email}`));
+
+  const vazios = Object.entries(EMAILS).filter(([,v]) => !v).map(([k]) => k);
+  if (vazios.length) Logger.log(`   Setores sem e-mail: ${vazios.join(", ")}`);
+}
+
+/**
+ * Limpa templates RNC duplicados do Drive, mantendo apenas o mais recente.
+ *
+ * Execute quando houver múltiplos docs "Template RNC" na pasta raiz do sistema.
+ * Confirme na saída de logs antes de deletar — a função LISTA antes de agir.
+ *
+ * Defina DELETAR = true para excluir; false apenas lista (modo seguro padrão).
+ */
+function limparTemplatesDuplicados() {
+  const DELETAR = false; // ← mude para true para confirmar exclusão
+
+  const props    = PropertiesService.getScriptProperties();
+  const folderId = props.getProperty("FOLDER_ID");
+  if (!folderId) { Logger.log("⚠ FOLDER_ID não encontrado. Execute configurarPropriedades() primeiro."); return; }
+
+  const folder = DriveApp.getFolderById(folderId);
+  const files  = folder.getFilesByName("Template RNC");
+
+  const encontrados = [];
+  while (files.hasNext()) encontrados.push(files.next());
+
+  if (encontrados.length <= 1) {
+    Logger.log(`✅ Apenas ${encontrados.length} template(s) encontrado(s) — nada a limpar.`);
+    return;
+  }
+
+  // Ordena do mais recente para o mais antigo
+  encontrados.sort((a, b) => b.getDateCreated() - a.getDateCreated());
+  const manter = encontrados[0];
+  const remover = encontrados.slice(1);
+
+  Logger.log(`📄 Encontrados ${encontrados.length} templates:`);
+  Logger.log(`   ✅ Manter : "${manter.getName()}" — ${manter.getDateCreated().toLocaleString()} — ${manter.getId()}`);
+  remover.forEach(f => Logger.log(`   🗑 Remover: "${f.getName()}" — ${f.getDateCreated().toLocaleString()} — ${f.getId()}`));
+
+  if (!DELETAR) {
+    Logger.log("\n⚠ Modo seguro ativo. Mude DELETAR = true para confirmar a exclusão.");
+    return;
+  }
+
+  // Verifica qual ID está salvo no PropertiesService e avisa se for diferente do mais recente
+  const templateIdSalvo = props.getProperty("TEMPLATE_ID");
+  if (templateIdSalvo !== manter.getId()) {
+    Logger.log(`\n⚠ O TEMPLATE_ID salvo (${templateIdSalvo}) difere do template mais recente (${manter.getId()}).`);
+    Logger.log("   Atualizando TEMPLATE_ID para o mais recente...");
+    props.setProperty("TEMPLATE_ID", manter.getId());
+  }
+
+  remover.forEach(f => { f.setTrashed(true); Logger.log(`🗑 Movido para lixeira: ${f.getId()}`); });
+  Logger.log(`\n✅ ${remover.length} template(s) duplicado(s) movido(s) para a lixeira. TEMPLATE_ID atualizado.`);
+}

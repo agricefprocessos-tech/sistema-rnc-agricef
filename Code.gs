@@ -61,10 +61,13 @@ const CONFIG = {
     VERIFICACAO_QA:{ id: "10143", transicao: null }, // descoberto dinamicamente
     CONCLUIDO:     { id: "10109", transicao: "41" },
   },
-  // Lista de REs autorizados. Em produção, mover para uma aba "Config" de uma planilha
-  // para permitir adição/remoção sem alterar código.
-  // ⚠ Substitua pelos REs reais dos operadores Agricef
-  RES_AUTORIZADOS: ["1001", "1002", "1003", "1004", "1005"],
+  // Lista de REs autorizados a abrir RNC.
+  // Gerenciada via PropertiesService — use configurarREs() para adicionar/remover
+  // sem alterar o código-fonte. O getter abaixo lê em tempo de execução.
+  get RES_AUTORIZADOS() {
+    const stored = PropertiesService.getScriptProperties().getProperty("RES_AUTORIZADOS");
+    return stored ? JSON.parse(stored) : [];
+  },
 
   // E-mails globais — recebem TODAS as RNCs (equipe de qualidade)
   EMAILS_NOTIFICACAO: [
@@ -73,22 +76,20 @@ const CONFIG = {
   ],
 
   // Mapa setor → e-mail do responsável direto.
-  // O responsável do setor afetado recebe o e-mail junto com a equipe de qualidade.
-  // Valores aceitos pelo campo "Setor Responsável" no formulário devem bater com as
-  // chaves abaixo (case-insensitive na comparação). Deixe "" para setores sem responsável
-  // cadastrado ou adicione o e-mail quando souber.
-  // ⚠ Substitua pelos e-mails reais dos supervisores Agricef
+  // Chaves devem bater com as opções do <select> de "Setor Responsável" no HTML.
+  // Preencha os e-mails reais com configurarEmailsSetor() ou edite aqui diretamente.
   RESPONSAVEIS_SETOR: {
-    "Usinagem":           "",  // ex: "supervisor.usinagem@agricef.com.br"
-    "Montagem":           "",
-    "Soldagem":           "",
-    "Injeção Plástica":   "",
-    "Estamparia":         "",
-    "Qualidade":          "",
-    "Expedição":          "",
-    "Almoxarifado":       "",
-    "Manutenção":         "",
-    "Externo / Fornecedor": "",
+    "Usinagem":               "",
+    "Caldeiraria":            "",
+    "Soldagem":               "",
+    "Montagem":               "",
+    "Dobra / Estamparia":     "",
+    "Pintura":                "",
+    "Compras / Suprimentos":  "",
+    "Engenharia":             "",
+    "Qualidade":              "",
+    "Expedição":              "",
+    "Manutenção":             "",
   },
 
   MAX_IMG_BASE64_BYTES: 2 * 1024 * 1024, // 2 MB hard cap pós-compressão
@@ -931,7 +932,10 @@ function _notificarVerificacao(ticket, aprovado, motivo, responsavel) {
 function _notificarResponsaveis(dados, ticketKey, urlPdf, urlPasta) {
   // Monta lista de destinatários: equipe de qualidade + responsável do setor (sem duplicatas)
   const base = CONFIG.EMAILS_NOTIFICACAO.filter(e => !!e);
-  const emailSetor = CONFIG.RESPONSAVEIS_SETOR[dados.setorResponsavel] || "";
+  // Lê e-mails do PropertiesService (configurarEmailsSetor) com fallback para mapa estático
+  const emailsSetorStored = PropertiesService.getScriptProperties().getProperty("EMAILS_SETOR");
+  const mapaSetor = emailsSetorStored ? JSON.parse(emailsSetorStored) : CONFIG.RESPONSAVEIS_SETOR;
+  const emailSetor = mapaSetor[dados.setorResponsavel] || "";
   const todos = [...new Set([...base, ...(emailSetor ? [emailSetor] : [])])];
   if (!todos.length) return;
 
