@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fundo azul com cantos arredondados (maskable: área segura = círculo central 72%) -->
+  <rect width="512" height="512" rx="96" fill="#1a56a0"/>
+
+  <!-- Símbolo: checkmark dentro de um hexágono estilizado representando qualidade/inspeção -->
+  <!-- Hexágono externo (borda branca) -->
+  <polygon points="256,60 420,155 420,345 256,440 92,345 92,155"
+           fill="none" stroke="white" stroke-width="24" stroke-linejoin="round"/>
+
+  <!-- Letra A estilizada de Agricef -->
+  <text x="256" y="310"
+        font-family="Arial Black, Arial, sans-serif"
+        font-size="200" font-weight="900"
+        text-anchor="middle"
+        fill="white">A</text>
+
+  <!-- Check mark de qualidade no canto inferior direito -->
+  <circle cx="370" cy="370" r="72" fill="#1a7a45"/>
+  <polyline points="334,370 358,396 408,342"
+            fill="none" stroke="white" stroke-width="18"
+            stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
