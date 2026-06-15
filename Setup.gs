@@ -4,10 +4,11 @@
 // para configurar o ambiente completo sem precisar copiar IDs.
 //
 // ORDEM DE EXECUÇÃO:
-//   1. configurarPropriedades()  — define as credenciais Jira
-//   2. criarTemplateRNC()        — cria o Doc template no Drive
-//   3. criarCamposV2()           — cria campos de tratativa/SLA
-//   4. verificarSetup()          — valida toda a configuração
+//   1. configurarPropriedades()      — define as credenciais Jira
+//   2. criarTemplateRNC()            — cria o Doc template no Drive
+//   3. criarCamposV2()               — cria campos de tratativa/SLA
+//   4. verificarSetup()              — valida toda a configuração
+//   5. criarDocumentosGovernanca()   — gera os 6 docs do SGQ no Drive  [Governanca.gs]
 // ============================================================
 
 
